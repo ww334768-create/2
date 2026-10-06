@@ -124,6 +124,14 @@ table td.balance-col{
   nav{position:sticky;top:5px;z-index:10}
   .nav-btn{font-size:13px;padding:10px 5px}
 }
+
+.sort-th{
+  cursor:pointer;
+  user-select:none;
+  white-space:nowrap;
+}
+.sort-th:hover{background:#edc0cd}
+.sort-th span{font-size:.8em;margin-left:3px;font-weight:700}
 </style>
 </head>
 <body>
@@ -238,8 +246,7 @@ table td.balance-col{
     </div>
     <div id="stockForm" style="display:none" class="section">
       <div class="form-row">
-        <input id="newStockCode" placeholder="代號，例如 0050" oninput="previewStockName()">
-        <input id="newStockName" placeholder="股票名稱會自動帶入" readonly>
+        <input id="newStockCode" placeholder="代號，例如 0050">
         <button class="btn primary" onclick="addStock()">儲存</button>
         <button class="btn" onclick="hideStockForm()">取消</button>
       </div>
@@ -247,12 +254,12 @@ table td.balance-col{
     <div class="table-wrap section">
       <table>
         <thead><tr>
-<th><button class="sort-th" onclick="sortStocks('code')">股票代碼 <span id="stockSortCode">↕</span></button></th>
-<th><button class="sort-th" onclick="sortStocks('shares')">累積股數 <span id="stockSortShares">↕</span></button></th>
-<th><button class="sort-th" onclick="sortStocks('investment')">累積投入 <span id="stockSortInvestment">↕</span></button></th>
-<th><button class="sort-th" onclick="sortStocks('market')">最新市值 <span id="stockSortMarket">↕</span></button></th>
-<th><button class="sort-th" onclick="sortStocks('ret')">總報酬 <span id="stockSortRet">↕</span></button></th>
-<th><button class="sort-th" onclick="sortStocks('rate')">報酬率 <span id="stockSortRate">↕</span></button></th>
+<th class="sort-th" onclick="sortStocks('code')" title="點擊切換排序">股票代碼 <span id="stockSortCode">↕</span></th>
+<th class="sort-th" onclick="sortStocks('shares')">累積股數 <span id="stockSortShares">↕</span></th>
+<th class="sort-th" onclick="sortStocks('investment')">累積投入 <span id="stockSortInvestment">↕</span></th>
+<th class="sort-th" onclick="sortStocks('market')">最新市值 <span id="stockSortMarket">↕</span></th>
+<th class="sort-th" onclick="sortStocks('ret')">總報酬 <span id="stockSortRet">↕</span></th>
+<th class="sort-th" onclick="sortStocks('rate')">報酬率 <span id="stockSortRate">↕</span></th>
 <th>操作</th></tr></thead>
         <tbody id="stockTable"></tbody>
       </table>
@@ -271,7 +278,7 @@ table td.balance-col{
 const KEY="ayuMoneyBox_v1";
 const DEFAULT_ACCOUNTS=["中華郵政","國泰世華","玉山銀行","台新銀行","永豐銀行","將來銀行","華南銀行","中國信託","彰化銀行","連線銀行"];
 const DEFAULT_STOCKS=["0050","0056","0052","006208","00878","00919","009816"];
-const STOCK_NAMES={"0050":"元大台灣50","0056":"元大高股息","0052":"富邦科技","006208":"富邦台50","00878":"國泰永續高股息","00919":"群益台灣精選高息","009816":"凱基台灣TOP50","2317":"鴻海"};
+const STOCK_NAMES={"0050":"元大台灣50","0056":"元大高股息","0052":"富邦科技","006208":"富邦台50","00878":"國泰永續高股息","00919":"群益台灣精選高息","009816":"凱基台灣TOP50"};
 function stockName(code){return STOCK_NAMES[stockCode(code)]||"";}
 function stockLabel(code){const c=stockCode(code);const n=stockName(c);return n?`${c}｜${n}`:c;}
 
@@ -499,26 +506,14 @@ function renderCards(){
   }).join("")||`<tr><td colspan="3" class="empty">目前沒有信用卡資料</td></tr>`;
 }
 
-function showStockForm(){document.getElementById("stockForm").style.display="block";previewStockName()}
+function showStockForm(){document.getElementById("stockForm").style.display="block"}
 function hideStockForm(){document.getElementById("stockForm").style.display="none"}
-function previewStockName(){
-  const code=stockCode(document.getElementById("newStockCode").value.trim().toUpperCase());
-  document.getElementById("newStockName").value=STOCK_NAMES[code]||"";
-}
 function addStock(){
-  const code=stockCode(document.getElementById("newStockCode").value.trim().toUpperCase());
+  const code=document.getElementById("newStockCode").value.trim().toUpperCase();
   if(!code)return alert("請輸入股票／ETF代號");
-  if(state.stocks.some(x=>stockCode(x.code)===code))return alert("這支已經存在");
-  if(!STOCK_NAMES[code]){
-    const name=prompt("找不到這個代號的內建名稱，請輸入股票／ETF名稱","");
-    if(name===null)return;
-    const trimmed=name.trim();
-    if(!trimmed)return alert("請輸入股票／ETF名稱");
-    STOCK_NAMES[code]=trimmed;
-  }
+  if(state.stocks.some(x=>x.code===code))return alert("這支已經存在");
   state.stocks.push({id:uid(),code,initialInvestment:0,initialShares:0});
   document.getElementById("newStockCode").value="";
-  document.getElementById("newStockName").value="";
   hideStockForm();saveLocal();scheduleSync();
 }
 function setupInitialStock(id){
