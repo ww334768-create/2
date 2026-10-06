@@ -288,9 +288,15 @@ table td.balance-col{
 const KEY="ayuMoneyBox_v1";
 const DEFAULT_ACCOUNTS=["中華郵政","國泰世華","玉山銀行","台新銀行","永豐銀行","將來銀行","華南銀行","中國信託","彰化銀行","連線銀行"];
 const DEFAULT_STOCKS=["0050","0056","0052","006208","00878","00919","009816"];
-const STOCK_NAMES={"0050":"元大台灣50","0056":"元大高股息","0052":"富邦科技","006208":"富邦台50","00878":"國泰永續高股息","00919":"群益台灣精選高息","009816":"凱基台灣TOP50"};
+const STOCK_NAMES={"0050":"元大台灣50","0056":"元大高股息","0052":"富邦科技","006208":"富邦台50","00878":"國泰永續高股息","00919":"群益台灣精選高息","009816":"凱基台灣TOP50","2317":"鴻海"};
 function stockName(code){return STOCK_NAMES[stockCode(code)]||"";}
 function stockLabel(code){const c=stockCode(code);const n=stockName(c);return n?`${c}｜${n}`:c;}
+function stockSortKey(code){
+  const c=stockCode(code);
+  const isDefaultETF=DEFAULT_STOCKS.includes(c);
+  return [isDefaultETF?0:1,c];
+}
+
 
 let state=loadState();
 let stockSort={key:"code",dir:1};
@@ -446,8 +452,14 @@ function addAssetSnapshot(){
   if(total===0)return;
   const d=prompt("這筆總資產代表哪一天？",today());
   if(!d)return;
-  state.assetSnapshots=state.assetSnapshots.filter(x=>x.dataDate!==d);
-  state.assetSnapshots.push({id:uid(),dataDate:d,total});
+
+  // 同一天只保留一筆；再次更新同一天直接修改原本那筆。
+  const existing=state.assetSnapshots.find(x=>x.dataDate===d);
+  if(existing){
+    existing.total=total;
+  }else{
+    state.assetSnapshots.push({id:uid(),dataDate:d,total});
+  }
 }
 
 function finishEdit(){
@@ -565,7 +577,7 @@ function renderStocks(){
   const tb=document.getElementById("stockTable");
   const rows=[...(state.stocks||[])].sort((a,b)=>{
     if(stockSort.key==="code"){
-      return stockCode(a.code).localeCompare(stockCode(b.code),"zh-TW",{numeric:true})*stockSort.dir;
+      const ak=stockSortKey(a.code),bk=stockSortKey(b.code); return ((ak[0]-bk[0]) || ak[1].localeCompare(bk[1],"zh-TW",{numeric:true}))*stockSort.dir;
     }
     const ai=stockInfo(a), bi=stockInfo(b);
     const av=Number(ai[stockSort.key]??0), bv=Number(bi[stockSort.key]??0);
@@ -649,11 +661,16 @@ function renderDashboard(){
   goalText("gCash",cash);goalText("gStock",stocks);goalText("gTotal",total);
 
   const ss=document.getElementById("stockSummary");
-  ss.innerHTML=[...(state.stocks||[])].sort((a,b)=>stockCode(a.code).localeCompare(stockCode(b.code),"zh-TW",{numeric:true})).map(s=>{const i=stockInfo(s);return `<div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid #e8e2de"><span><strong>${esc(stockLabel(s.code))}</strong></span><span>${money(i.market)}　<span style="color:#000000">${pct(i.rate)}</span></span></div>`}).join("")||"<div class='empty'>尚無股票</div>";
+  ss.innerHTML=[...(state.stocks||[])].sort((a,b)=>{const ak=stockSortKey(a.code),bk=stockSortKey(b.code);return ak[0]-bk[0]||ak[1].localeCompare(bk[1],"zh-TW",{numeric:true});}).map(s=>{const i=stockInfo(s);return `<div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid #e8e2de"><span><strong>${esc(stockLabel(s.code))}</strong></span><span>${money(i.market)}　<span style="color:#000000">${pct(i.rate)}</span></span></div>`}).join("")||"<div class='empty'>尚無股票</div>";
 
   const chart=document.getElementById("assetChart");
   const meta=document.getElementById("assetChartMeta");
-  const arr=state.assetSnapshots.slice().sort((a,b)=>a.dataDate.localeCompare(b.dataDate));
+  const assetByDate=new Map();
+  (state.assetSnapshots||[]).forEach(x=>{
+    const d=formatDataDate(x.dataDate);
+    if(d)assetByDate.set(d,{...x,dataDate:d});
+  });
+  const arr=Array.from(assetByDate.values()).sort((a,b)=>a.dataDate.localeCompare(b.dataDate));
   if(!arr.length){
     chart.innerHTML="<div class='empty'>目前還沒有歷史資料<br>輸入銀行餘額或更新股票市值後就會開始累積</div>";
     meta.textContent="依資產資料日期";
@@ -910,6 +927,16 @@ function mergeCloudIntoLocal(cloud){
   });
 
   normalizeCloudDatesAndCodes();
+
+  // 舊的雲端測試資料如果同一天有多筆，畫面只保留最後一筆。
+  const assetByDate=new Map();
+  (state.assetSnapshots||[]).forEach(x=>{
+    const d=formatDataDate(x.dataDate);
+    if(d)assetByDate.set(d,{...x,dataDate:d});
+  });
+  state.assetSnapshots=Array.from(assetByDate.values())
+    .sort((a,b)=>a.dataDate.localeCompare(b.dataDate));
+
   localStorage.setItem(KEY,JSON.stringify(state));
   renderAll();
 }
