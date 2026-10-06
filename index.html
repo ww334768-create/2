@@ -245,7 +245,7 @@ table td.balance-col{
     </div>
     <div class="table-wrap section">
       <table>
-        <thead><tr><th>股票</th><th>累積股數</th><th>累積投入</th><th>最新市值</th><th>總報酬</th><th>報酬率</th><th>操作</th></tr></thead>
+        <thead><tr><th><button class="sort-th" onclick="sortStocks('code')">股票代碼 <span id="stockSortCode">↕</span></button></th><th>累積股數</th><th>累積投入</th><th>最新市值</th><th>總報酬</th><th>報酬率</th><th>操作</th></tr></thead>
         <tbody id="stockTable"></tbody>
       </table>
     </div>
@@ -265,6 +265,7 @@ const DEFAULT_ACCOUNTS=["中華郵政","國泰世華","玉山銀行","台新銀�
 const DEFAULT_STOCKS=["0050","0056","0052","006208","00878","00919","009816"];
 
 let state=loadState();
+let stockSort={key:"code",dir:1};
 
 function loadState(){
   try{
@@ -522,16 +523,34 @@ function addMarketValue(id){
   state.marketSnapshots.push({id:uid(),stockId:id,dataDate:d,marketValue:Number(v)});
   finishEdit();openStockDetail(id);
 }
+function sortStocks(key){
+  if(stockSort.key===key){
+    stockSort.dir*=-1;
+  }else{
+    stockSort.key=key;
+    stockSort.dir=1;
+  }
+  renderStocks();
+}
+
 function renderStocks(){
   const tb=document.getElementById("stockTable");
-  tb.innerHTML=state.stocks.map(s=>{
+  const rows=[...(state.stocks||[])].sort((a,b)=>{
+    const av=stockCode(a.code);
+    const bv=stockCode(b.code);
+    return av.localeCompare(bv,"zh-TW",{numeric:true})*stockSort.dir;
+  });
+
+  const sortIcon=document.getElementById("stockSortCode");
+  if(sortIcon)sortIcon.textContent=stockSort.dir===1?"↑":"↓";
+
+  tb.innerHTML=rows.map(s=>{
     const i=stockInfo(s);
     return `<tr>
       <td><strong>${esc(stockCode(s.code))}</strong></td>
       <td>${i.shares.toLocaleString("zh-TW")}</td>
       <td>${money(i.investment)}</td>
       <td>${money(i.market)}</td>
-      <td>${i.marketDate}</td>
       <td>${money(i.ret)}</td>
       <td>${pct(i.rate)}</td>
       <td><div class="actions">
@@ -539,7 +558,7 @@ function renderStocks(){
         <button class="btn small" onclick="addMarketValue('${s.id}')">更新市值</button>
       </div></td>
     </tr>`;
-  }).join("")||`<tr><td colspan="8" class="empty">目前沒有股票</td></tr>`;
+  }).join("")||`<tr><td colspan="7" class="empty">目前沒有股票</td></tr>`;
 }
 function openStockDetail(id){
   const s=state.stocks.find(x=>x.id===id);if(!s)return;
@@ -594,7 +613,7 @@ function renderDashboard(){
   goalText("gCash",cash);goalText("gStock",stocks);goalText("gTotal",total);
 
   const ss=document.getElementById("stockSummary");
-  ss.innerHTML=state.stocks.map(s=>{const i=stockInfo(s);return `<div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid #f0e7ea"><span><strong>${esc(s.code)}</strong></span><span>${money(i.market)}　<span style="color:#000000">${pct(i.rate)}</span></span></div>`}).join("")||"<div class='empty'>尚無股票</div>";
+  ss.innerHTML=[...(state.stocks||[])].sort((a,b)=>stockCode(a.code).localeCompare(stockCode(b.code),"zh-TW",{numeric:true})).map(s=>{const i=stockInfo(s);return `<div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid #f0e7ea"><span><strong>${esc(stockCode(s.code))}</strong></span><span>${money(i.market)}　<span style="color:#000000">${pct(i.rate)}</span></span></div>`}).join("")||"<div class='empty'>尚無股票</div>";
 
   const chart=document.getElementById("assetChart");
   const meta=document.getElementById("assetChartMeta");
