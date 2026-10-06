@@ -263,6 +263,9 @@ table td.balance-col{
 const KEY="ayuMoneyBox_v1";
 const DEFAULT_ACCOUNTS=["中華郵政","國泰世華","玉山銀行","台新銀行","永豐銀行","將來銀行","華南銀行","中國信託","彰化銀行","連線銀行"];
 const DEFAULT_STOCKS=["0050","0056","0052","006208","00878","00919","009816"];
+const STOCK_NAMES={"0050":"元大台灣50","0056":"元大高股息","0052":"富邦科技","006208":"富邦台50","00878":"國泰永續高股息","00919":"群益台灣精選高息","009816":"凱基台灣TOP50"};
+function stockName(code){return STOCK_NAMES[stockCode(code)]||"";}
+function stockLabel(code){const c=stockCode(code);const n=stockName(c);return n?`${c}｜${n}`:c;}
 
 let state=loadState();
 let stockSort={key:"code",dir:1};
@@ -547,7 +550,7 @@ function renderStocks(){
   tb.innerHTML=rows.map(s=>{
     const i=stockInfo(s);
     return `<tr>
-      <td><strong>${esc(stockCode(s.code))}</strong></td>
+      <td><strong>${esc(stockLabel(s.code))}</strong></td>
       <td>${i.shares.toLocaleString("zh-TW")}</td>
       <td>${money(i.investment)}</td>
       <td>${money(i.market)}</td>
@@ -566,7 +569,7 @@ function openStockDetail(id){
   const purchases=state.purchases.filter(x=>x.stockId===id).sort((a,b)=>b.dataDate.localeCompare(a.dataDate));
   const markets=state.marketSnapshots.filter(x=>x.stockId===id).sort((a,b)=>b.dataDate.localeCompare(a.dataDate));
   document.getElementById("stockDetailCard").style.display="block";
-  document.getElementById("detailTitle").textContent="📈 "+stockCode(s.code)+" 明細";
+  document.getElementById("detailTitle").textContent="📈 "+stockLabel(s.code)+" 明細";
   document.getElementById("stockDetail").innerHTML=`
     <div class="grid summary-grid">
       <div class="card"><div class="metric-label">累積股數</div><div class="metric">${i.shares.toLocaleString("zh-TW")}</div></div>
@@ -613,7 +616,7 @@ function renderDashboard(){
   goalText("gCash",cash);goalText("gStock",stocks);goalText("gTotal",total);
 
   const ss=document.getElementById("stockSummary");
-  ss.innerHTML=[...(state.stocks||[])].sort((a,b)=>stockCode(a.code).localeCompare(stockCode(b.code),"zh-TW",{numeric:true})).map(s=>{const i=stockInfo(s);return `<div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid #f0e7ea"><span><strong>${esc(stockCode(s.code))}</strong></span><span>${money(i.market)}　<span style="color:#000000">${pct(i.rate)}</span></span></div>`}).join("")||"<div class='empty'>尚無股票</div>";
+  ss.innerHTML=[...(state.stocks||[])].sort((a,b)=>stockCode(a.code).localeCompare(stockCode(b.code),"zh-TW",{numeric:true})).map(s=>{const i=stockInfo(s);return `<div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid #f0e7ea"><span><strong>${esc(stockLabel(s.code))}</strong></span><span>${money(i.market)}　<span style="color:#000000">${pct(i.rate)}</span></span></div>`}).join("")||"<div class='empty'>尚無股票</div>";
 
   const chart=document.getElementById("assetChart");
   const meta=document.getElementById("assetChartMeta");
