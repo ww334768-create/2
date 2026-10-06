@@ -7,14 +7,14 @@
 <style>
 *{box-sizing:border-box}
 :root{
-  --pink:#e8b2c1;
-  --pink2:#fff3f6;
-  --pink3:#d99baa;
-  --pink4:#fffafb;
+  --pink:#e7b0c0;
+  --pink2:#fff5f7;
+  --pink3:#c9aeb8;
+  --pink4:#f9f7fc;
   --text:#222222;
   --muted:#000000;
-  --line:#eadfe3;
-  --blue:#a9c9dc;
+  --line:#e3dfeb;
+  --blue:#c7dfea;
   --shadow:0 3px 12px rgba(100,80,90,.045);
 }
 body{
@@ -66,7 +66,7 @@ nav{
 .section-head h2{font-size:17px;margin:0}
 .table-wrap{overflow:auto}
 table{width:100%;border-collapse:collapse;min-width:620px}
-th,td{padding:11px 9px;border-bottom:1px solid #f0e7ea;text-align:left;font-size:14px}
+th,td{padding:11px 9px;border-bottom:1px solid #e3dfeb;text-align:left;font-size:14px}
 th{color:#000000;background:#f3cbd6}
 td.num{text-align:right}
 input,select{
@@ -79,7 +79,7 @@ input:focus,select:focus{border-color:#d8b4c2}
 .goal{margin:14px 0}
 .goal-head{display:flex;justify-content:space-between;font-size:14px;margin-bottom:7px}
 .bar{
-  height:24px;border-radius:999px;background:#fbe0e8;border:1px solid #e7c4ce;
+  height:24px;border-radius:999px;background:#f5edf4;border:1px solid #e1d5e4;
   overflow:hidden;position:relative;
 }
 .fill{
@@ -94,7 +94,7 @@ input:focus,select:focus{border-color:#d8b4c2}
 .badge{display:inline-block;padding:4px 8px;border-radius:999px;background:var(--pink2);font-size:12px}
 .plus-row{margin-top:10px}
 .history{
-  margin-top:8px;padding:12px;background:#fff8fa;border:1px solid #f0e4e8;
+  margin-top:8px;padding:12px;background:#f9f7fc;border:1px solid #e3dfeb;
   border-radius:12px;display:none;
 }
 .history.open{display:block}
@@ -104,7 +104,7 @@ details summary{cursor:pointer;color:#000000;font-size:13px}
   padding:12px 4px 25px;border-bottom:1px solid var(--line);overflow:auto;
 }
 .bar-col{min-width:42px;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:5px}
-.chart-bar{width:25px;background:#dfa5b5;border-radius:7px 7px 2px 2px;min-height:3px}
+.chart-bar{width:25px;background:#c9dce7;border-radius:7px 7px 2px 2px;min-height:3px}
 .chart-label{font-size:10px;color:var(--muted);white-space:nowrap}
 .chart-value{font-size:10px;color:#000000;white-space:nowrap}
 .form-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
@@ -126,19 +126,22 @@ table td.balance-col{
 }
 
 .sort-th{
-  appearance:none;
-  border:0;
-  background:transparent;
-  color:#000;
-  font:inherit;
-  font-weight:700;
-  padding:2px 4px;
-  margin:0;
   cursor:pointer;
+  user-select:none;
   white-space:nowrap;
 }
-.sort-th:hover{color:#000;opacity:.72}
+.sort-th:hover{background:#edc0cd}
 .sort-th span{font-size:.8em;margin-left:3px;font-weight:700}
+
+/* 配色點綴：粉紅＋淡藍＋淡薰衣草紫，完全不使用綠色 */
+.metric-sub{color:#5f6870}
+.badge{background:#eaf3f7;border-color:#d4e5ec}
+.sync-status{color:#5f6870}
+.goal:nth-child(2) .bar{background:#eaf3f7;border-color:#d4e5ec}
+.goal:nth-child(2) .fill{background:#c7dfea}
+.goal:nth-child(3) .bar{background:#f0edf8;border-color:#ddd6ec}
+.goal:nth-child(3) .fill{background:#d9d0ea}
+
 </style>
 </head>
 <body>
@@ -261,12 +264,12 @@ table td.balance-col{
     <div class="table-wrap section">
       <table>
         <thead><tr>
-<th><button class="sort-th" onclick="sortStocks('code')">股票代碼 <span id="stockSortCode">↕</span></button></th>
-<th><button class="sort-th" onclick="sortStocks('shares')">累積股數 <span id="stockSortShares">↕</span></button></th>
-<th><button class="sort-th" onclick="sortStocks('investment')">累積投入 <span id="stockSortInvestment">↕</span></button></th>
-<th><button class="sort-th" onclick="sortStocks('market')">最新市值 <span id="stockSortMarket">↕</span></button></th>
-<th><button class="sort-th" onclick="sortStocks('ret')">總報酬 <span id="stockSortRet">↕</span></button></th>
-<th><button class="sort-th" onclick="sortStocks('rate')">報酬率 <span id="stockSortRate">↕</span></button></th>
+<th class="sort-th" onclick="sortStocks('code')" title="點擊切換排序">股票代碼 <span id="stockSortCode">↕</span></th>
+<th class="sort-th" onclick="sortStocks('shares')">累積股數 <span id="stockSortShares">↕</span></th>
+<th class="sort-th" onclick="sortStocks('investment')">累積投入 <span id="stockSortInvestment">↕</span></th>
+<th class="sort-th" onclick="sortStocks('market')">最新市值 <span id="stockSortMarket">↕</span></th>
+<th class="sort-th" onclick="sortStocks('ret')">總報酬 <span id="stockSortRet">↕</span></th>
+<th class="sort-th" onclick="sortStocks('rate')">報酬率 <span id="stockSortRate">↕</span></th>
 <th>操作</th></tr></thead>
         <tbody id="stockTable"></tbody>
       </table>
@@ -285,9 +288,69 @@ table td.balance-col{
 const KEY="ayuMoneyBox_v1";
 const DEFAULT_ACCOUNTS=["中華郵政","國泰世華","玉山銀行","台新銀行","永豐銀行","將來銀行","華南銀行","中國信託","彰化銀行","連線銀行"];
 const DEFAULT_STOCKS=["0050","0056","0052","006208","00878","00919","009816"];
-const STOCK_NAMES={"0050":"元大台灣50","0056":"元大高股息","0052":"富邦科技","006208":"富邦台50","00878":"國泰永續高股息","00919":"群益台灣精選高息","009816":"凱基台灣TOP50"};
-function stockName(code){return STOCK_NAMES[stockCode(code)]||"";}
+const STOCK_NAMES={"0050":"元大台灣50","0056":"元大高股息","0052":"富邦科技","006208":"富邦台50","00878":"國泰永續高股息","00919":"群益台灣精選高息","009816":"凱基台灣TOP50","2317":"鴻海"};
+const STOCK_NAME_CACHE_KEY="ayuMoneyBox_stockNames_v1";
+const STOCK_NAME_CACHE_READY_KEY="ayuMoneyBox_stockNamesReady_v1";
+let stockNameCache={};
+try{stockNameCache=JSON.parse(localStorage.getItem(STOCK_NAME_CACHE_KEY)||"{}")}catch(e){stockNameCache={};}
+Object.assign(stockNameCache,STOCK_NAMES);
+function stockName(code){return stockNameCache[stockCode(code)]||"";}
 function stockLabel(code){const c=stockCode(code);const n=stockName(c);return n?`${c}｜${n}`:c;}
+
+// 自動查詢台股／ETF名稱：使用 FinMind 的 TaiwanStockInfo 總覽資料。
+// 只查「代號→名稱」，不抓每日股價，也不影響目前的市值手動輸入。
+let stockNameLoading=null;
+async function loadStockNames(){
+  if(stockNameLoading)return stockNameLoading;
+  stockNameLoading=(async()=>{
+    try{
+      const response=await fetch("https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockInfo");
+      if(!response.ok)throw new Error("HTTP "+response.status);
+      const result=await response.json();
+      if(!result||!Array.isArray(result.data))throw new Error("名稱資料格式錯誤");
+      result.data.forEach(x=>{
+        const code=stockCode(x.stock_id);
+        const name=String(x.stock_name||"").trim();
+        if(code&&name)stockNameCache[code]=name;
+      });
+      Object.assign(stockNameCache,STOCK_NAMES);
+      localStorage.setItem(STOCK_NAME_CACHE_KEY,JSON.stringify(stockNameCache));
+      localStorage.setItem(STOCK_NAME_CACHE_READY_KEY,"1");
+      renderStocks();
+      renderDashboard();
+      return true;
+    }catch(err){
+      console.warn("股票名稱查詢失敗：",err);
+      return false;
+    }finally{
+      stockNameLoading=null;
+    }
+  })();
+  return stockNameLoading;
+}
+
+// 有新增股票時，先查名稱；查不到才請使用者手動補一次。
+async function ensureStockName(code){
+  const c=stockCode(code);
+  if(stockName(c))return stockName(c);
+  const ok=await loadStockNames();
+  if(stockName(c))return stockName(c);
+  if(!ok){
+    const manual=prompt("查不到這個股票代號的名稱，請輸入股票名稱（之後會記住）","");
+    if(manual&&manual.trim()){
+      stockNameCache[c]=manual.trim();
+      localStorage.setItem(STOCK_NAME_CACHE_KEY,JSON.stringify(stockNameCache));
+      return manual.trim();
+    }
+  }
+  return stockName(c)||"";
+}
+function stockSortKey(code){
+  const c=stockCode(code);
+  const isDefaultETF=DEFAULT_STOCKS.includes(c);
+  return [isDefaultETF?0:1,c];
+}
+
 
 let state=loadState();
 let stockSort={key:"code",dir:1};
@@ -302,6 +365,7 @@ function loadState(){
       s.cards ||= [];
       s.stocks ||= DEFAULT_STOCKS.map(code=>({id:uid(),code,initialInvestment:0,initialShares:0}));
       s.purchases ||= [];
+      s.sales ||= [];
       s.marketSnapshots ||= [];
       s.assetSnapshots ||= [];
       return s;
@@ -313,6 +377,7 @@ function loadState(){
     cards:[],
     stocks:DEFAULT_STOCKS.map(code=>({id:uid(),code,initialInvestment:0,initialShares:0})),
     purchases:[],
+    sales:[],
     marketSnapshots:[],
     assetSnapshots:[],
     lastUpdated:null
@@ -406,6 +471,11 @@ function normalizeCloudDatesAndCodes(){
     dataDate:formatDataDate(x.dataDate)
   }));
 
+  state.sales=(state.sales||[]).map(x=>({
+    ...x,
+    dataDate:formatDataDate(x.dataDate)
+  }));
+
   state.assetSnapshots=(state.assetSnapshots||[]).map(x=>({
     ...x,
     dataDate:formatDataDate(x.dataDate)
@@ -424,14 +494,63 @@ function cashTotal(){
   return state.accounts.reduce((sum,a)=>sum+(Number(latestAccount(a.id)?.balance)||0),0);
 }
 function stockInfo(stock){
-  const ps=state.purchases.filter(x=>x.stockId===stock.id);
-  const investment=(Number(stock.initialInvestment)||0)+ps.reduce((s,x)=>s+Number(x.amount||0),0);
-  const shares=(Number(stock.initialShares)||0)+ps.reduce((s,x)=>s+Number(x.shares||0),0);
+  const purchases=state.purchases.filter(x=>x.stockId===stock.id);
+  const sales=state.sales.filter(x=>x.stockId===stock.id);
+  const acquiredInvestment=(Number(stock.initialInvestment)||0)+purchases.reduce((s,x)=>s+Number(x.amount||0),0);
+  const acquiredShares=(Number(stock.initialShares)||0)+purchases.reduce((s,x)=>s+Number(x.shares||0),0);
+
+  // 用平均成本法計算賣出後剩餘成本與已實現損益。
+  // 同一天若同時有購入與賣出，先算購入再算賣出。
+  const events=[
+    ...purchases.map(x=>({type:"purchase",dataDate:formatDataDate(x.dataDate),amount:Number(x.amount)||0,shares:Number(x.shares)||0})),
+    ...sales.map(x=>({type:"sale",dataDate:formatDataDate(x.dataDate),amount:Number(x.amount)||0,shares:Number(x.shares)||0}))
+  ].sort((a,b)=>{
+    const d=a.dataDate.localeCompare(b.dataDate);
+    if(d!==0)return d;
+    if(a.type===b.type)return 0;
+    return a.type==="purchase"?-1:1;
+  });
+
+  let remainingShares=Number(stock.initialShares)||0;
+  let remainingCost=Number(stock.initialInvestment)||0;
+  let realizedProfit=0;
+  let saleProceeds=0;
+  let soldShares=0;
+
+  events.forEach(e=>{
+    if(e.type==="purchase"){
+      remainingShares+=e.shares;
+      remainingCost+=e.amount;
+    }else if(e.shares>0 && remainingShares>0){
+      const sellShares=Math.min(e.shares,remainingShares);
+      const avgCost=remainingShares>0?remainingCost/remainingShares:0;
+      const costRemoved=avgCost*sellShares;
+      remainingShares-=sellShares;
+      remainingCost=Math.max(0,remainingCost-costRemoved);
+      saleProceeds+=e.amount;
+      realizedProfit+=e.amount-costRemoved;
+      soldShares+=sellShares;
+    }
+  });
+
   const ms=state.marketSnapshots.filter(x=>x.stockId===stock.id).sort((a,b)=>b.dataDate.localeCompare(a.dataDate))[0];
   const market=Number(ms?.marketValue)||0;
-  const ret=market-investment;
-  const rate=investment?ret/investment*100:0;
-  return {investment,shares,market,ret,rate,marketDate:ms?.dataDate||"—"};
+  const unrealizedReturn=market-remainingCost;
+  const totalReturn=unrealizedReturn+realizedProfit;
+  const rate=acquiredInvestment?totalReturn/acquiredInvestment*100:0;
+  return {
+    investment:acquiredInvestment,
+    shares:remainingShares,
+    market,
+    ret:totalReturn,
+    rate,
+    marketDate:ms?.dataDate||"—",
+    remainingCost,
+    realizedProfit,
+    unrealizedReturn,
+    saleProceeds,
+    soldShares
+  };
 }
 function stockTotal(){
   return state.stocks.reduce((s,x)=>s+stockInfo(x).market,0);
@@ -443,8 +562,14 @@ function addAssetSnapshot(){
   if(total===0)return;
   const d=prompt("這筆總資產代表哪一天？",today());
   if(!d)return;
-  state.assetSnapshots=state.assetSnapshots.filter(x=>x.dataDate!==d);
-  state.assetSnapshots.push({id:uid(),dataDate:d,total});
+
+  // 同一天只保留一筆；再次更新同一天直接修改原本那筆。
+  const existing=state.assetSnapshots.find(x=>x.dataDate===d);
+  if(existing){
+    existing.total=total;
+  }else{
+    state.assetSnapshots.push({id:uid(),dataDate:d,total});
+  }
 }
 
 function finishEdit(){
@@ -515,13 +640,27 @@ function renderCards(){
 
 function showStockForm(){document.getElementById("stockForm").style.display="block"}
 function hideStockForm(){document.getElementById("stockForm").style.display="none"}
-function addStock(){
-  const code=document.getElementById("newStockCode").value.trim().toUpperCase();
+async function addStock(){
+  const input=document.getElementById("newStockCode");
+  const code=stockCode(input.value.trim().toUpperCase());
   if(!code)return alert("請輸入股票／ETF代號");
-  if(state.stocks.some(x=>x.code===code))return alert("這支已經存在");
-  state.stocks.push({id:uid(),code,initialInvestment:0,initialShares:0});
-  document.getElementById("newStockCode").value="";
-  hideStockForm();saveLocal();scheduleSync();
+  if(state.stocks.some(x=>stockCode(x.code)===code))return alert("這支已經存在");
+
+  const btn=input.parentElement.querySelector(".btn.primary");
+  if(btn){btn.disabled=true;btn.textContent="查詢名稱中…";}
+  try{
+    const name=await ensureStockName(code);
+    state.stocks.push({id:uid(),code,initialInvestment:0,initialShares:0});
+    input.value="";
+    hideStockForm();
+    saveLocal();
+    scheduleSync();
+    renderStocks();
+    renderDashboard();
+    if(name)console.log("已取得股票名稱：",code,name);
+  }finally{
+    if(btn){btn.disabled=false;btn.textContent="儲存";}
+  }
 }
 function setupInitialStock(id){
   const s=state.stocks.find(x=>x.id===id);if(!s)return;
@@ -530,6 +669,70 @@ function setupInitialStock(id){
   if(isNaN(Number(inv))||isNaN(Number(sh)))return alert("請輸入數字");
   s.initialInvestment=Number(inv);s.initialShares=Number(sh);saveLocal();scheduleSync();
 }
+function recordPromptNumber(label,current){
+  const v=prompt(label,current==null?"":current);
+  if(v===null)return null;
+  if(v===""||!Number.isFinite(Number(v)))return undefined;
+  return Number(v);
+}
+function saveRecordAndRefresh(stockId){
+  saveLocal();
+  scheduleSync();
+  openStockDetail(stockId);
+}
+function editPurchase(id){
+  const r=state.purchases.find(x=>x.id===id);if(!r)return;
+  const d=prompt("購入日期",r.dataDate);if(d===null)return;
+  const amount=recordPromptNumber("購入金額",r.amount);if(amount===undefined)return alert("請輸入正確金額");if(amount===null)return;
+  const shares=recordPromptNumber("購入股數",r.shares);if(shares===undefined)return alert("請輸入正確股數");if(shares===null)return;
+  if(amount<0||shares<=0)return alert("金額不能小於 0，股數需大於 0");
+  r.dataDate=d;r.amount=amount;r.shares=shares;
+  saveRecordAndRefresh(r.stockId);
+}
+function deletePurchase(id){
+  const r=state.purchases.find(x=>x.id===id);if(!r)return;
+  if(!confirm(`確定要刪除這筆購入紀錄嗎？\n${r.dataDate}　${money(r.amount)}　${Number(r.shares).toLocaleString("zh-TW")} 股`))return;
+  state.purchases=state.purchases.filter(x=>x.id!==id);
+  saveRecordAndRefresh(r.stockId);
+}
+function editSale(id){
+  const r=(state.sales||[]).find(x=>x.id===id);if(!r)return;
+  const stock=state.stocks.find(x=>x.id===r.stockId);if(!stock)return;
+  const d=prompt("賣出日期",r.dataDate);if(d===null)return;
+  const shares=recordPromptNumber("賣出股數",r.shares);if(shares===undefined)return alert("請輸入正確股數");if(shares===null)return;
+  const amount=recordPromptNumber("賣出實收金額",r.amount);if(amount===undefined)return alert("請輸入正確金額");if(amount===null)return;
+  if(shares<=0||amount<0)return alert("股數需大於 0，金額不能小於 0");
+  const others=(state.sales||[]).filter(x=>x.id!==id&&x.stockId===r.stockId);
+  const otherSold=others.reduce((sum,x)=>sum+Number(x.shares||0),0);
+  const purchases=state.purchases.filter(x=>x.stockId===r.stockId);
+  const acquired=(Number(stock.initialShares)||0)+purchases.reduce((sum,x)=>sum+Number(x.shares||0),0);
+  if(otherSold+shares>acquired+1e-8)return alert("修改後的賣出股數會超過目前可用持股");
+  r.dataDate=d;r.shares=shares;r.amount=amount;
+  saveRecordAndRefresh(r.stockId);
+}
+function deleteSale(id){
+  const r=(state.sales||[]).find(x=>x.id===id);if(!r)return;
+  if(!confirm(`確定要刪除這筆賣出紀錄嗎？\n${r.dataDate}　${money(r.amount)}　${Number(r.shares).toLocaleString("zh-TW")} 股`))return;
+  state.sales=state.sales.filter(x=>x.id!==id);
+  saveRecordAndRefresh(r.stockId);
+}
+function editMarketValue(id){
+  const r=state.marketSnapshots.find(x=>x.id===id);if(!r)return;
+  const d=prompt("市值資料日期",r.dataDate);if(d===null)return;
+  const v=recordPromptNumber("目前市值",r.marketValue);if(v===undefined)return alert("請輸入正確金額");if(v===null)return;
+  if(v<0)return alert("市值不能小於 0");
+  r.dataDate=d;r.marketValue=v;
+  finishEdit();
+  openStockDetail(r.stockId);
+}
+function deleteMarketValue(id){
+  const r=state.marketSnapshots.find(x=>x.id===id);if(!r)return;
+  if(!confirm(`確定要刪除這筆市值紀錄嗎？\n${r.dataDate}　${money(r.marketValue)}`))return;
+  state.marketSnapshots=state.marketSnapshots.filter(x=>x.id!==id);
+  finishEdit();
+  openStockDetail(r.stockId);
+}
+
 function addPurchase(id){
   const s=state.stocks.find(x=>x.id===id);if(!s)return;
   const d=prompt("購入日期",today());if(!d)return;
@@ -537,6 +740,23 @@ function addPurchase(id){
   const shares=prompt(s.code+" 本次股數","");if(shares===null)return;
   if(isNaN(Number(amount))||isNaN(Number(shares)))return alert("請輸入數字");
   state.purchases.push({id:uid(),stockId:id,dataDate:d,amount:Number(amount),shares:Number(shares)});
+  saveLocal();scheduleSync();openStockDetail(id);
+}
+function addSale(id){
+  const s=state.stocks.find(x=>x.id===id);if(!s)return;
+  const info=stockInfo(s);
+  if(info.shares<=0)return alert("目前沒有可賣出的持股");
+
+  const d=prompt("賣出日期",today());if(!d)return;
+  const shares=prompt(s.code+" 本次賣出股數","");if(shares===null)return;
+  const amount=prompt(s.code+" 本次賣出實收金額","");if(amount===null)return;
+  const sellShares=Number(shares), sellAmount=Number(amount);
+  if(!Number.isFinite(sellShares)||sellShares<=0)return alert("請輸入大於 0 的賣出股數");
+  if(sellShares>info.shares+1e-8)return alert("賣出股數不能超過目前持股："+info.shares.toLocaleString("zh-TW")+" 股");
+  if(!Number.isFinite(sellAmount)||sellAmount<0)return alert("請輸入 0 以上的賣出金額");
+
+  state.sales ||= [];
+  state.sales.push({id:uid(),stockId:id,dataDate:d,amount:sellAmount,shares:sellShares});
   saveLocal();scheduleSync();openStockDetail(id);
 }
 function addMarketValue(id){
@@ -548,6 +768,31 @@ function addMarketValue(id){
   state.marketSnapshots.push({id:uid(),stockId:id,dataDate:d,marketValue:Number(v)});
   finishEdit();openStockDetail(id);
 }
+function deleteStock(id){
+  const s=state.stocks.find(x=>x.id===id);
+  if(!s)return;
+
+  const purchases=state.purchases.filter(x=>x.stockId===id);
+  const sales=(state.sales||[]).filter(x=>x.stockId===id);
+  const markets=state.marketSnapshots.filter(x=>x.stockId===id);
+
+  const hasRecords=purchases.length||sales.length||markets.length;
+  const message=hasRecords
+    ? `確定要刪除「${stockLabel(s.code)}」嗎？\n\n這會一併刪除：\n・股票主資料\n・購入紀錄 ${purchases.length} 筆\n・賣出紀錄 ${sales.length} 筆\n・市值紀錄 ${markets.length} 筆\n\n刪除後會同步到 Google 試算表。`
+    : `確定要刪除「${stockLabel(s.code)}」嗎？\n\n這支股票目前沒有購入、賣出或市值紀錄。`;
+
+  if(!confirm(message))return;
+
+  state.stocks=state.stocks.filter(x=>x.id!==id);
+  state.purchases=state.purchases.filter(x=>x.stockId!==id);
+  state.sales=(state.sales||[]).filter(x=>x.stockId!==id);
+  state.marketSnapshots=state.marketSnapshots.filter(x=>x.stockId!==id);
+
+  saveLocal();
+  scheduleSync();
+  closeStockDetail();
+}
+
 function sortStocks(key){
   if(stockSort.key===key){
     stockSort.dir*=-1;
@@ -562,7 +807,7 @@ function renderStocks(){
   const tb=document.getElementById("stockTable");
   const rows=[...(state.stocks||[])].sort((a,b)=>{
     if(stockSort.key==="code"){
-      return stockCode(a.code).localeCompare(stockCode(b.code),"zh-TW",{numeric:true})*stockSort.dir;
+      const ak=stockSortKey(a.code),bk=stockSortKey(b.code); return ((ak[0]-bk[0]) || ak[1].localeCompare(bk[1],"zh-TW",{numeric:true}))*stockSort.dir;
     }
     const ai=stockInfo(a), bi=stockInfo(b);
     const av=Number(ai[stockSort.key]??0), bv=Number(bi[stockSort.key]??0);
@@ -589,6 +834,8 @@ function renderStocks(){
       <td><div class="actions">
         <button class="btn small" onclick="openStockDetail('${s.id}')">明細</button>
         <button class="btn small" onclick="addMarketValue('${s.id}')">更新市值</button>
+        <button class="btn small" onclick="addSale('${s.id}')">賣出</button>
+        <button class="btn small" onclick="deleteStock('${s.id}')">🗑️ 刪除股票</button>
       </div></td>
     </tr>`;
   }).join("")||`<tr><td colspan="7" class="empty">目前沒有股票</td></tr>`;
@@ -598,25 +845,31 @@ function openStockDetail(id){
   const i=stockInfo(s);
   const purchases=state.purchases.filter(x=>x.stockId===id).sort((a,b)=>b.dataDate.localeCompare(a.dataDate));
   const markets=state.marketSnapshots.filter(x=>x.stockId===id).sort((a,b)=>b.dataDate.localeCompare(a.dataDate));
+  const sales=(state.sales||[]).filter(x=>x.stockId===id).sort((a,b)=>b.dataDate.localeCompare(a.dataDate));
   document.getElementById("stockDetailCard").style.display="block";
   document.getElementById("detailTitle").textContent="📈 "+stockLabel(s.code)+" 明細";
   document.getElementById("stockDetail").innerHTML=`
     <div class="grid summary-grid">
       <div class="card"><div class="metric-label">累積股數</div><div class="metric">${i.shares.toLocaleString("zh-TW")}</div></div>
-      <div class="card"><div class="metric-label">累積投入</div><div class="metric">${money(i.investment)}</div></div>
+      <div class="card"><div class="metric-label">累積投入</div><div class="metric">${money(i.investment)}</div><div class="metric-sub">目前剩餘成本：${money(i.remainingCost)}</div></div>
       <div class="card"><div class="metric-label">最新市值</div><div class="metric">${money(i.market)}</div><div class="metric-sub">市值日期：${i.marketDate}</div></div>
-      <div class="card"><div class="metric-label">總報酬</div><div class="metric">${money(i.ret)}（${pct(i.rate)}）</div></div>
+      <div class="card"><div class="metric-label">總報酬</div><div class="metric">${money(i.ret)}（${pct(i.rate)}）</div><div class="metric-sub">已實現：${money(i.realizedProfit)}　未實現：${money(i.unrealizedReturn)}</div></div>
     </div>
     <div class="actions section">
       <button class="btn primary" onclick="setupInitialStock('${id}')">設定既有持股</button>
       <button class="btn primary" onclick="addPurchase('${id}')">＋新增購入</button>
+      <button class="btn" onclick="deleteStock('${id}')">🗑️ 刪除這支股票</button>
+      <button class="btn primary" onclick="addSale('${id}')">＋新增賣出</button>
       <button class="btn primary" onclick="addMarketValue('${id}')">＋更新市值</button>
     </div>
     <details class="section"><summary>購入紀錄（${purchases.length} 筆）</summary>
-      ${purchases.length?purchases.map(x=>`<div class="history open">${x.dataDate}　${money(x.amount)}　${Number(x.shares).toLocaleString("zh-TW")} 股</div>`).join(""):"<div class='empty'>尚無購入紀錄</div>"}
+      ${purchases.length?purchases.map(x=>`<div class="history open"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap"><span>${x.dataDate}　${money(x.amount)}　${Number(x.shares).toLocaleString("zh-TW")} 股</span><span class="actions"><button class="btn small" onclick="editPurchase('${x.id}')">✏️ 編輯</button><button class="btn small" onclick="deletePurchase('${x.id}')">🗑️ 刪除</button></span></div></div>`).join(""):"<div class='empty'>尚無購入紀錄</div>"}
+    </details>
+    <details class="section"><summary>賣出紀錄（${sales.length} 筆）</summary>
+      ${sales.length?sales.map(x=>`<div class="history open"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap"><span>${x.dataDate}　${money(x.amount)}　${Number(x.shares).toLocaleString("zh-TW")} 股</span><span class="actions"><button class="btn small" onclick="editSale('${x.id}')">✏️ 編輯</button><button class="btn small" onclick="deleteSale('${x.id}')">🗑️ 刪除</button></span></div></div>`).join(""):"<div class='empty'>尚無賣出紀錄</div>"}
     </details>
     <details class="section"><summary>市值紀錄（${markets.length} 筆）</summary>
-      ${markets.length?markets.map(x=>`<div class="history open">${x.dataDate}　${money(x.marketValue)}</div>`).join(""):"<div class='empty'>尚無市值紀錄</div>"}
+      ${markets.length?markets.map(x=>`<div class="history open"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap"><span>${x.dataDate}　${money(x.marketValue)}</span><span class="actions"><button class="btn small" onclick="editMarketValue('${x.id}')">✏️ 編輯</button><button class="btn small" onclick="deleteMarketValue('${x.id}')">🗑️ 刪除</button></span></div></div>`).join(""):"<div class='empty'>尚無市值紀錄</div>"}
     </details>`;
   document.getElementById("stockDetailCard").scrollIntoView({behavior:"smooth",block:"start"});
 }
@@ -646,11 +899,16 @@ function renderDashboard(){
   goalText("gCash",cash);goalText("gStock",stocks);goalText("gTotal",total);
 
   const ss=document.getElementById("stockSummary");
-  ss.innerHTML=[...(state.stocks||[])].sort((a,b)=>stockCode(a.code).localeCompare(stockCode(b.code),"zh-TW",{numeric:true})).map(s=>{const i=stockInfo(s);return `<div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid #f0e7ea"><span><strong>${esc(stockLabel(s.code))}</strong></span><span>${money(i.market)}　<span style="color:#000000">${pct(i.rate)}</span></span></div>`}).join("")||"<div class='empty'>尚無股票</div>";
+  ss.innerHTML=[...(state.stocks||[])].sort((a,b)=>{const ak=stockSortKey(a.code),bk=stockSortKey(b.code);return ak[0]-bk[0]||ak[1].localeCompare(bk[1],"zh-TW",{numeric:true});}).map(s=>{const i=stockInfo(s);return `<div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid #e3dfeb"><span><strong>${esc(stockLabel(s.code))}</strong></span><span>${money(i.market)}　<span style="color:#000000">${pct(i.rate)}</span></span></div>`}).join("")||"<div class='empty'>尚無股票</div>";
 
   const chart=document.getElementById("assetChart");
   const meta=document.getElementById("assetChartMeta");
-  const arr=state.assetSnapshots.slice().sort((a,b)=>a.dataDate.localeCompare(b.dataDate));
+  const assetByDate=new Map();
+  (state.assetSnapshots||[]).forEach(x=>{
+    const d=formatDataDate(x.dataDate);
+    if(d)assetByDate.set(d,{...x,dataDate:d});
+  });
+  const arr=Array.from(assetByDate.values()).sort((a,b)=>a.dataDate.localeCompare(b.dataDate));
   if(!arr.length){
     chart.innerHTML="<div class='empty'>目前還沒有歷史資料<br>輸入銀行餘額或更新股票市值後就會開始累積</div>";
     meta.textContent="依資產資料日期";
@@ -705,6 +963,7 @@ function importBackup(file){
         cards:data.cards||[],
         stocks:data.stocks||[],
         purchases:data.purchases||[],
+        sales:data.sales||[],
         marketSnapshots:data.marketSnapshots||[],
         assetSnapshots:data.assetSnapshots||[],
         lastUpdated:data.lastUpdated||new Date().toISOString()
@@ -712,7 +971,7 @@ function importBackup(file){
       localStorage.removeItem(PENDING_KEY);
       localStorage.removeItem("ayuMoneyBox_cloudInitialized_v1");
       saveLocal();
-      syncToCloudNow(false);
+      syncToCloudNow();
       alert("備份已載入，並開始同步到雲端。");
     }catch(err){
       alert("備份載入失敗："+err.message);
@@ -733,6 +992,7 @@ const TABLE_MAP={
   cards:"cards",
   stocks:"stocks",
   purchases:"purchases",
+  sales:"sales",
   marketSnapshots:"marketSnapshots",
   assetSnapshots:"assetSnapshots"
 };
@@ -745,15 +1005,16 @@ function setPending(list){
   localStorage.setItem(PENDING_KEY,JSON.stringify(list));
 }
 
-function rowKey(table,row){
-  return table+"::"+String(row.id||"");
+function changeKey(item){
+  const id=item?.delete ? item.id : item?.row?.id;
+  return item.table+"::"+String(id||"");
 }
 
 function queueChanges(changes){
   if(!changes.length)return;
   const pending=getPending();
-  const map=new Map(pending.map(x=>[rowKey(x.table,x.row),x]));
-  changes.forEach(x=>map.set(rowKey(x.table,x.row),x));
+  const map=new Map(pending.map(x=>[changeKey(x),x]));
+  changes.forEach(x=>map.set(changeKey(x),x));
   setPending([...map.values()]);
 }
 
@@ -764,9 +1025,71 @@ function stateArrays(st){
     cards:st.cards||[],
     stocks:st.stocks||[],
     purchases:st.purchases||[],
+    sales:st.sales||[],
     marketSnapshots:st.marketSnapshots||[],
     assetSnapshots:st.assetSnapshots||[]
   };
+}
+
+// 同一股票代號只能有一筆主資料。
+// 若歷史上曾產生重複的股票主資料，會把購入／賣出／市值紀錄重新指向保留的那一筆，
+// 並把重複主資料的既有初始投入／股數合併後刪除，避免之後同步又長出雙倍資料。
+function dedupeStocksByCode(){
+  const stocks=Array.isArray(state.stocks)?state.stocks:[];
+  const groups=new Map();
+  stocks.forEach(stock=>{
+    const code=stockCode(stock.code);
+    if(!groups.has(code))groups.set(code,[]);
+    groups.get(code).push(stock);
+  });
+
+  let changed=false;
+
+  groups.forEach((group,code)=>{
+    if(group.length<=1)return;
+
+    // 優先保留已有正式投入／股數或歷史紀錄較多的那一筆。
+    const score=stock=>{
+      const childCount=
+        (state.purchases||[]).filter(x=>x.stockId===stock.id).length+
+        (state.sales||[]).filter(x=>x.stockId===stock.id).length+
+        (state.marketSnapshots||[]).filter(x=>x.stockId===stock.id).length;
+      return ((Number(stock.initialInvestment)||0)>0?1000000000:0)
+        +((Number(stock.initialShares)||0)>0?100000000:0)
+        +childCount;
+    };
+
+    group.sort((a,b)=>score(b)-score(a));
+    const keeper=group[0];
+    let keeperInvestment=Number(keeper.initialInvestment)||0;
+    let keeperShares=Number(keeper.initialShares)||0;
+    const duplicateIds=[];
+
+    group.slice(1).forEach(dup=>{
+      keeperInvestment+=Number(dup.initialInvestment)||0;
+      keeperShares+=Number(dup.initialShares)||0;
+      duplicateIds.push(String(dup.id));
+
+      (state.purchases||[]).forEach(x=>{
+        if(String(x.stockId)===String(dup.id))x.stockId=keeper.id;
+      });
+      (state.sales||[]).forEach(x=>{
+        if(String(x.stockId)===String(dup.id))x.stockId=keeper.id;
+      });
+      (state.marketSnapshots||[]).forEach(x=>{
+        if(String(x.stockId)===String(dup.id))x.stockId=keeper.id;
+      });
+      changed=true;
+    });
+
+    keeper.code=code;
+    keeper.initialInvestment=keeperInvestment;
+    keeper.initialShares=keeperShares;
+
+    state.stocks=state.stocks.filter(x=>!duplicateIds.includes(String(x.id)));
+  });
+
+  return changed;
 }
 
 function collectChangedRows(before,after){
@@ -774,27 +1097,35 @@ function collectChangedRows(before,after){
   const a=stateArrays(after);
   const b=stateArrays(before||{});
   Object.keys(a).forEach(table=>{
-    const oldMap=new Map((b[table]||[]).map(x=>[String(x.id),JSON.stringify(x)]));
+    const oldMap=new Map((b[table]||[]).map(x=>[String(x.id),x]));
+    const newMap=new Map((a[table]||[]).map(x=>[String(x.id),x]));
     (a[table]||[]).forEach(row=>{
       const old=oldMap.get(String(row.id));
-      if(old!==JSON.stringify(row)){
+      if(!old || JSON.stringify(old)!==JSON.stringify(row)){
         changes.push({table,row});
+      }
+    });
+    (b[table]||[]).forEach(oldRow=>{
+      if(!newMap.has(String(oldRow.id))){
+        changes.push({table,id:String(oldRow.id),delete:true});
       }
     });
   });
   return changes;
 }
 
-async function syncToCloudNow(forceAll=false){
+async function syncToCloudNow(){
   const status=document.getElementById("syncStatus");
   status.textContent="🔵 同步中…";
 
   try{
-    let changes=getPending();
+    // 同步只送「有變更的資料」。
+    // 不再因為按下「立即同步」就把整份本機資料覆蓋到雲端，避免舊的 0/0 主檔把正確資料蓋掉。
+    const changes=getPending();
 
     if(!changes.length){
       status.textContent="🔵 已同步";
-      return;
+      return true;
     }
 
     const response=await fetch(GAS_URL,{
@@ -806,33 +1137,30 @@ async function syncToCloudNow(forceAll=false){
       })
     });
 
-    if(!response.ok){
-      throw new Error("HTTP "+response.status);
-    }
+    if(!response.ok)throw new Error("HTTP "+response.status);
 
     const result=await response.json();
+    if(!result || result.result!=="success")throw new Error(result?.message || "Google Apps Script 回傳失敗");
 
-    // ★ 最重要：不能只看 HTTP 200，一定檢查 GAS result。
-    if(!result || result.result!=="success"){
-      throw new Error(result?.message || "Google Apps Script 回傳失敗");
-    }
-
-    localStorage.removeItem(PENDING_KEY);
+    const sentKeys=new Set(changes.map(changeKey));
+    const remaining=getPending().filter(x=>!sentKeys.has(changeKey(x)));
+    setPending(remaining);
     localStorage.setItem("ayuMoneyBox_cloudInitialized_v1","1");
     status.textContent="🔵 已同步";
+    return true;
   }catch(err){
-    // 同步失敗時絕不清掉待同步資料，本機資料仍然安全。
     status.textContent="⚠️ 同步失敗，資料已保存在本機";
     console.error("阿魚小金庫同步失敗：",err);
+    return false;
   }
 }
 
 function scheduleSync(){
   clearTimeout(window.syncTimer);
-  window.syncTimer=setTimeout(()=>syncToCloudNow(false),900);
+  window.syncTimer=setTimeout(()=>syncToCloudNow(),900);
 }
 
-document.getElementById("syncBtn").onclick=()=>syncToCloudNow(false);
+document.getElementById("syncBtn").onclick=()=>syncToCloudNow();
 
 async function loadFromCloud(){
   const status=document.getElementById("syncStatus");
@@ -854,97 +1182,108 @@ async function loadFromCloud(){
 
 
 function mergeCloudIntoLocal(cloud){
-  if(!cloud)return;
+  if(!cloud)return false;
 
-  // ★ 安全合併：雲端資料是主資料來源。
-  // 只有「真的有待同步變更」的本機資料，才允許覆蓋同代號的雲端主檔。
-  // 這可避免新瀏覽器產生的 0/0 預設股票把雲端正確資料蓋掉。
-  const pending=getPending();
-  const pendingKeys=new Set(pending.map(x=>rowKey(x.table,x.row)));
+  const remoteStocks=Array.isArray(cloud.stocks)?cloud.stocks:[];
+  const stockIdRemap=new Map();
+  const duplicateRemoteStockIds=[];
+  const stockGroups=new Map();
 
-  function mergeMaster(localRows,remoteRows,keyFn,table){
-    const localMap=new Map((localRows||[]).map(row=>[keyFn(row),row]));
-    const remoteMap=new Map((remoteRows||[]).map(row=>[keyFn(row),row]));
-    const keys=new Set([...remoteMap.keys(),...localMap.keys()]);
-    const out=[];
-
-    keys.forEach(key=>{
-      const local=localMap.get(key);
-      const remote=remoteMap.get(key);
-      if(!remote){
-        out.push(local);
-        return;
-      }
-      if(!local){
-        out.push(remote);
-        return;
-      }
-
-      // 同代號時：只有這筆本機主檔真的在待同步清單，才以本機為準。
-      const localIsPending=pendingKeys.has(rowKey(table,local));
-      out.push(localIsPending?local:remote);
-    });
-    return out;
-  }
-
-  state.accounts=mergeMaster(
-    state.accounts,
-    Array.isArray(cloud.accounts)?cloud.accounts:[],
-    row=>String(row.name||"").trim(),
-    "accounts"
-  );
-
-  state.stocks=mergeMaster(
-    state.stocks,
-    Array.isArray(cloud.stocks)?cloud.stocks:[],
-    row=>stockCode(row.code),
-    "stocks"
-  );
-
-  // 其他資料使用穩定 ID 合併；同 ID 時雲端為準，
-  // 但若該筆仍在待同步清單，則保留本機版本。
-  [
-    "accountSnapshots",
-    "cards",
-    "purchases",
-    "marketSnapshots",
-    "assetSnapshots"
-  ].forEach(table=>{
-    const local=state[table]||[];
-    const remote=Array.isArray(cloud[table])?cloud[table]:[];
-    const map=new Map();
-    remote.forEach(row=>map.set(String(row.id),row));
-    local.forEach(row=>{
-      const key=rowKey(table,row);
-      if(!map.has(String(row.id)) || pendingKeys.has(key)){
-        map.set(String(row.id),row);
-      }
-    });
-    state[table]=Array.from(map.values());
+  remoteStocks.forEach(stock=>{
+    const code=stockCode(stock.code);
+    if(!stockGroups.has(code))stockGroups.set(code,[]);
+    stockGroups.get(code).push(stock);
   });
 
+  const cleanStocks=[];
+  stockGroups.forEach((group,code)=>{
+    // 同一代號只能保留一筆；優先保留有正式投入／股數的資料。
+    group.sort((a,b)=>{
+      const sa=(Number(a.initialInvestment)||0)>0?1000000000:0;
+      const sb=(Number(b.initialInvestment)||0)>0?1000000000:0;
+      const sha=(Number(a.initialShares)||0)>0?100000000:0;
+      const shb=(Number(b.initialShares)||0)>0?100000000:0;
+      return (sb+shb)-(sa+sha);
+    });
+
+    const keeper=group[0];
+    cleanStocks.push({...keeper,code});
+
+    group.slice(1).forEach(dup=>{
+      stockIdRemap.set(String(dup.id),String(keeper.id));
+      duplicateRemoteStockIds.push(String(dup.id));
+    });
+  });
+
+  const remapChildRows=rows=>(Array.isArray(rows)?rows:[]).map(row=>{
+    const copy={...row};
+    if(copy.stockId!=null)copy.stockId=stockIdRemap.get(String(copy.stockId)) || copy.stockId;
+    return copy;
+  });
+
+  state.accounts=Array.isArray(cloud.accounts)?cloud.accounts:[];
+  state.stocks=cleanStocks;
+  state.accountSnapshots=Array.isArray(cloud.accountSnapshots)?cloud.accountSnapshots:[];
+  state.cards=Array.isArray(cloud.cards)?cloud.cards:[];
+  state.purchases=remapChildRows(cloud.purchases);
+  state.sales=remapChildRows(cloud.sales);
+  state.marketSnapshots=remapChildRows(cloud.marketSnapshots);
+  state.assetSnapshots=Array.isArray(cloud.assetSnapshots)?cloud.assetSnapshots:[];
+
   normalizeCloudDatesAndCodes();
+
+  // 雲端若還有舊的重複股票主檔，只排入刪除佇列，不動正確資料。
+  if(duplicateRemoteStockIds.length){
+    queueChanges(duplicateRemoteStockIds.map(id=>({table:"stocks",id,delete:true})));
+  }
+
+  // 舊的雲端測試資料如果同一天有多筆，畫面只保留最後一筆。
+  const assetByDate=new Map();
+  (state.assetSnapshots||[]).forEach(x=>{
+    const d=formatDataDate(x.dataDate);
+    if(d)assetByDate.set(d,{...x,dataDate:d});
+  });
+  state.assetSnapshots=Array.from(assetByDate.values()).sort((a,b)=>a.dataDate.localeCompare(b.dataDate));
+
   localStorage.setItem(KEY,JSON.stringify(state));
   renderAll();
+  return duplicateRemoteStockIds.length>0;
 }
 
 async function initializeCloud(){
-  // 有尚未送出的本機變更時，先上傳，再讀取雲端，避免覆蓋新資料。
+  // 啟動時先處理本機尚未同步的變更。
+  // 如果同步失敗，絕對不要拿舊雲端資料覆蓋本機。
   if(getPending().length){
-    await syncToCloudNow(false);
+    const ok=await syncToCloudNow();
+    if(!ok || getPending().length){
+      return;
+    }
   }
 
   const cloud=await loadFromCloud();
+  if(!cloud)return;
 
-  if(cloud){
-    mergeCloudIntoLocal(cloud);
-    localStorage.setItem("ayuMoneyBox_cloudInitialized_v1","1");
-    document.getElementById("syncStatus").textContent="🔵 已同步";
-  }
+  const hadDuplicateStocks=mergeCloudIntoLocal(cloud);
+  document.getElementById("syncStatus").textContent="🔵 已同步";
+
+  // 重複主資料的刪除另外送出；失敗則留在 pending，下次再送。
+  if(hadDuplicateStocks)await syncToCloudNow();
 }
 
-renderAll();
-initializeCloud();
+try{
+  renderAll();
+}catch(err){
+  console.error("阿魚小金庫畫面初始化失敗：",err);
+  const status=document.getElementById("syncStatus");
+  if(status)status.textContent="⚠️ 畫面初始化失敗，請重新整理";
+}
+// 股票名稱查詢只在背景執行，失敗不會影響主畫面。
+if(localStorage.getItem(STOCK_NAME_CACHE_READY_KEY)!=="1"){
+  loadStockNames().catch(err=>console.warn("股票名稱背景更新失敗：",err));
+}
+initializeCloud().catch(err=>{
+  console.error("阿魚小金庫雲端初始化失敗：",err);
+});
 </script>
 </body>
 </html>
