@@ -738,25 +738,44 @@ async function loadFromCloud(){
 function mergeCloudIntoLocal(cloud){
   if(!cloud)return;
 
-  const tables=[
-    "accounts",
+  // 主資料（帳戶／股票）不要只靠 id 合併。
+  // 清掉瀏覽器資料後，預設資料會重新產生新的 id；
+  // 若雲端還留著舊 id，就會被誤認成兩筆相同名稱。
+  // 這裡改用「名稱／代號」判斷，避免銀行與股票重複。
+  function mergeMaster(localRows,remoteRows,keyFn){
+    const map=new Map();
+    (localRows||[]).forEach(row=>map.set(keyFn(row),row));
+    (remoteRows||[]).forEach(row=>{
+      const key=keyFn(row);
+      if(!map.has(key)) map.set(key,row);
+    });
+    return Array.from(map.values());
+  }
+
+  state.accounts=mergeMaster(
+    state.accounts,
+    Array.isArray(cloud.accounts)?cloud.accounts:[],
+    row=>String(row.name||"").trim()
+  );
+
+  state.stocks=mergeMaster(
+    state.stocks,
+    Array.isArray(cloud.stocks)?cloud.stocks:[],
+    row=>stockCode(row.code)
+  );
+
+  // 其他資料仍然用穩定 id 合併，避免同一筆紀錄被重複新增。
+  [
     "accountSnapshots",
     "cards",
-    "stocks",
     "purchases",
     "marketSnapshots",
     "assetSnapshots"
-  ];
-
-  tables.forEach(table=>{
+  ].forEach(table=>{
     const local=state[table]||[];
     const remote=Array.isArray(cloud[table])?cloud[table]:[];
     const map=new Map(local.map(row=>[String(row.id),row]));
-
-    remote.forEach(row=>{
-      map.set(String(row.id),row);
-    });
-
+    remote.forEach(row=>map.set(String(row.id),row));
     state[table]=Array.from(map.values());
   });
 
