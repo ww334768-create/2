@@ -289,8 +289,62 @@ const KEY="ayuMoneyBox_v1";
 const DEFAULT_ACCOUNTS=["中華郵政","國泰世華","玉山銀行","台新銀行","永豐銀行","將來銀行","華南銀行","中國信託","彰化銀行","連線銀行"];
 const DEFAULT_STOCKS=["0050","0056","0052","006208","00878","00919","009816"];
 const STOCK_NAMES={"0050":"元大台灣50","0056":"元大高股息","0052":"富邦科技","006208":"富邦台50","00878":"國泰永續高股息","00919":"群益台灣精選高息","009816":"凱基台灣TOP50","2317":"鴻海"};
-function stockName(code){return STOCK_NAMES[stockCode(code)]||"";}
+const STOCK_NAME_CACHE_KEY="ayuMoneyBox_stockNames_v1";
+const STOCK_NAME_CACHE_READY_KEY="ayuMoneyBox_stockNamesReady_v1";
+let stockNameCache={};
+try{stockNameCache=JSON.parse(localStorage.getItem(STOCK_NAME_CACHE_KEY)||"{}")}catch(e){stockNameCache={};}
+Object.assign(stockNameCache,STOCK_NAMES);
+function stockName(code){return stockNameCache[stockCode(code)]||"";}
 function stockLabel(code){const c=stockCode(code);const n=stockName(c);return n?`${c}｜${n}`:c;}
+
+// 自動查詢台股／ETF名稱：使用 FinMind 的 TaiwanStockInfo 總覽資料。
+// 只查「代號→名稱」，不抓每日股價，也不影響目前的市值手動輸入。
+let stockNameLoading=null;
+async function loadStockNames(){
+  if(stockNameLoading)return stockNameLoading;
+  stockNameLoading=(async()=>{
+    try{
+      const response=await fetch("https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockInfo");
+      if(!response.ok)throw new Error("HTTP "+response.status);
+      const result=await response.json();
+      if(!result||!Array.isArray(result.data))throw new Error("名稱資料格式錯誤");
+      result.data.forEach(x=>{
+        const code=stockCode(x.stock_id);
+        const name=String(x.stock_name||"").trim();
+        if(code&&name)stockNameCache[code]=name;
+      });
+      Object.assign(stockNameCache,STOCK_NAMES);
+      localStorage.setItem(STOCK_NAME_CACHE_KEY,JSON.stringify(stockNameCache));
+      localStorage.setItem(STOCK_NAME_CACHE_READY_KEY,"1");
+      renderStocks();
+      renderDashboard();
+      return true;
+    }catch(err){
+      console.warn("股票名稱查詢失敗：",err);
+      return false;
+    }finally{
+      stockNameLoading=null;
+    }
+  })();
+  return stockNameLoading;
+}
+
+// 有新增股票時，先查名稱；查不到才請使用者手動補一次。
+async function ensureStockName(code){
+  const c=stockCode(code);
+  if(stockName(c))return stockName(c);
+  const ok=await loadStockNames();
+  if(stockName(c))return stockName(c);
+  if(!ok){
+    const manual=prompt("查不到這個股票代號的名稱，請輸入股票名稱（之後會記住）","");
+    if(manual&&manual.trim()){
+      stockNameCache[c]=manual.trim();
+      localStorage.setItem(STOCK_NAME_CACHE_KEY,JSON.stringify(stockNameCache));
+      return manual.trim();
+    }
+  }
+  return stockName(c)||"";
+}
 function stockSortKey(code){
   const c=stockCode(code);
   const isDefaultETF=DEFAULT_STOCKS.includes(c);
@@ -530,13 +584,27 @@ function renderCards(){
 
 function showStockForm(){document.getElementById("stockForm").style.display="block"}
 function hideStockForm(){document.getElementById("stockForm").style.display="none"}
-function addStock(){
-  const code=document.getElementById("newStockCode").value.trim().toUpperCase();
+async function addStock(){
+  const input=document.getElementById("newStockCode");
+  const code=stockCode(input.value.trim().toUpperCase());
   if(!code)return alert("請輸入股票／ETF代號");
-  if(state.stocks.some(x=>x.code===code))return alert("這支已經存在");
-  state.stocks.push({id:uid(),code,initialInvestment:0,initialShares:0});
-  document.getElementById("newStockCode").value="";
-  hideStockForm();saveLocal();scheduleSync();
+  if(state.stocks.some(x=>stockCode(x.code)===code))return alert("這支已經存在");
+
+  const btn=input.parentElement.querySelector(".btn.primary");
+  if(btn){btn.disabled=true;btn.textContent="查詢名稱中…";}
+  try{
+    const name=await ensureStockName(code);
+    state.stocks.push({id:uid(),code,initialInvestment:0,initialShares:0});
+    input.value="";
+    hideStockForm();
+    saveLocal();
+    scheduleSync();
+    renderStocks();
+    renderDashboard();
+    if(name)console.log("已取得股票名稱：",code,name);
+  }finally{
+    if(btn){btn.disabled=false;btn.textContent="儲存";}
+  }
 }
 function setupInitialStock(id){
   const s=state.stocks.find(x=>x.id===id);if(!s)return;
@@ -956,6 +1024,8 @@ async function initializeCloud(){
 }
 
 renderAll();
+// 啟動時若還沒有完整名稱快取，就背景更新一次；之後直接使用本機快取。
+if(localStorage.getItem(STOCK_NAME_CACHE_READY_KEY)!=="1")loadStockNames();
 initializeCloud();
 </script>
 </body>
