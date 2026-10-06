@@ -246,7 +246,14 @@ table td.balance-col{
     </div>
     <div class="table-wrap section">
       <table>
-        <thead><tr><th><button class="sort-th" onclick="sortStocks('code')">股票代碼 <span id="stockSortCode">↕</span></button></th><th>累積股數</th><th>累積投入</th><th>最新市值</th><th>總報酬</th><th>報酬率</th><th>操作</th></tr></thead>
+        <thead><tr>
+<th><button class="sort-th" onclick="sortStocks('code')">股票代碼 <span id="stockSortCode">↕</span></button></th>
+<th><button class="sort-th" onclick="sortStocks('shares')">累積股數 <span id="stockSortShares">↕</span></button></th>
+<th><button class="sort-th" onclick="sortStocks('investment')">累積投入 <span id="stockSortInvestment">↕</span></button></th>
+<th><button class="sort-th" onclick="sortStocks('market')">最新市值 <span id="stockSortMarket">↕</span></button></th>
+<th><button class="sort-th" onclick="sortStocks('ret')">總報酬 <span id="stockSortRet">↕</span></button></th>
+<th><button class="sort-th" onclick="sortStocks('rate')">報酬率 <span id="stockSortRate">↕</span></button></th>
+<th>操作</th></tr></thead>
         <tbody id="stockTable"></tbody>
       </table>
     </div>
@@ -552,12 +559,20 @@ function sortStocks(key){
 function renderStocks(){
   const tb=document.getElementById("stockTable");
   const rows=[...(state.stocks||[])].sort((a,b)=>{
-    const av=stockCode(a.code);
-    const bv=stockCode(b.code);
-    return av.localeCompare(bv,"zh-TW",{numeric:true})*stockSort.dir;
+    if(stockSort.key==="code"){
+      return stockCode(a.code).localeCompare(stockCode(b.code),"zh-TW",{numeric:true})*stockSort.dir;
+    }
+    const ai=stockInfo(a), bi=stockInfo(b);
+    const av=Number(ai[stockSort.key]??0), bv=Number(bi[stockSort.key]??0);
+    return (av-bv)*stockSort.dir;
   });
 
-  const sortIcon=document.getElementById("stockSortCode");
+  ["Code","Shares","Investment","Market","Ret","Rate"].forEach(name=>{
+    const el=document.getElementById("stockSort"+name);
+    if(el)el.textContent="↕";
+  });
+  const active={code:"Code",shares:"Shares",investment:"Investment",market:"Market",ret:"Ret",rate:"Rate"}[stockSort.key];
+  const sortIcon=document.getElementById("stockSort"+active);
   if(sortIcon)sortIcon.textContent=stockSort.dir===1?"↑":"↓";
 
   tb.innerHTML=rows.map(s=>{
