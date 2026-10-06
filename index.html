@@ -133,6 +133,9 @@ table td.balance-col{
   <div class="subtitle">懶人版財務小管家｜只記重要的，其他通通不要管 😂</div>
   <div class="syncbar">
     <button class="btn primary" id="syncBtn">☁️ 立即同步</button>
+    <button class="btn" onclick="exportBackup()">💾 匯出備份</button>
+    <button class="btn" onclick="document.getElementById('importBackupFile').click()">📂 匯入備份</button>
+    <input id="importBackupFile" type="file" accept=".json,application/json" style="display:none" onchange="importBackup(this.files[0])">
     <span class="sync-status" id="syncStatus">⚪ 尚未開始</span>
     <span class="badge" id="updateDate">最近更新：—</span>
   </div>
@@ -173,7 +176,7 @@ table td.balance-col{
   </div>
 
   <div class="card section">
-    <div class="section-head"><h2>📊 總資產歷史</h2><span class="metric-sub">依資產資料日期</span></div>
+    <div class="section-head"><h2>📊 總資產歷史</h2><span class="metric-sub" id="assetChartMeta">依資產資料日期</span></div>
     <div id="assetChart" class="chart"><div class="empty">目前還沒有歷史資料</div></div>
   </div>
 
@@ -202,6 +205,7 @@ table td.balance-col{
         <tbody id="accountTable"></tbody>
       </table>
     </div>
+    <div class="metric-sub" style="margin-top:8px">💡 銀行餘額用「萬元」輸入：例如輸入 53 = $530,000；53.5 = $535,000。</div>
   </div>
 
   <div class="card section">
@@ -241,7 +245,7 @@ table td.balance-col{
     </div>
     <div class="table-wrap section">
       <table>
-        <thead><tr><th>股票</th><th>累積股數</th><th>累積投入</th><th>最新市值</th><th>總報酬</th><th>報酬率</th><th>操作</th></tr></thead>
+        <thead><tr><th>股票</th><th>累積股數</th><th>累積投入</th><th>最新市值</th><th>市值日期</th><th>總報酬</th><th>報酬率</th><th>操作</th></tr></thead>
         <tbody id="stockTable"></tbody>
       </table>
     </div>
@@ -441,10 +445,13 @@ function addAccount(){
 function editAccount(aid){
   const a=state.accounts.find(x=>x.id===aid);if(!a)return;
   const d=prompt("資料日期（這個餘額代表哪一天？）",today());if(!d)return;
-  const val=prompt(a.name+" 餘額",latestAccount(aid)?.balance??"");if(val===null)return;
-  if(val===""||isNaN(Number(val)))return alert("請輸入數字");
+  const current=latestAccount(aid)?.balance;
+  const currentWan=current!=null?(Number(current)/10000):"";
+  const val=prompt(a.name+" 餘額（萬元）\n例如 53 = $530,000",currentWan);if(val===null)return;
+  if(val===""||isNaN(Number(val))||Number(val)<0)return alert("請輸入 0 以上的數字");
+  const balance=Math.round(Number(val)*10000);
   state.accountSnapshots=state.accountSnapshots.filter(x=>!(x.accountId===aid&&x.dataDate===d));
-  state.accountSnapshots.push({id:uid(),accountId:aid,dataDate:d,balance:Number(val)});
+  state.accountSnapshots.push({id:uid(),accountId:aid,dataDate:d,balance});
   finishEdit();
 }
 function renderAccounts(){
@@ -521,6 +528,7 @@ function renderStocks(){
       <td>${i.shares.toLocaleString("zh-TW")}</td>
       <td>${money(i.investment)}</td>
       <td>${money(i.market)}</td>
+      <td>${i.marketDate}</td>
       <td>${money(i.ret)}</td>
       <td>${pct(i.rate)}</td>
       <td><div class="actions">
@@ -528,7 +536,7 @@ function renderStocks(){
         <button class="btn small" onclick="addMarketValue('${s.id}')">更新市值</button>
       </div></td>
     </tr>`;
-  }).join("")||`<tr><td colspan="7" class="empty">目前沒有股票</td></tr>`;
+  }).join("")||`<tr><td colspan="8" class="empty">目前沒有股票</td></tr>`;
 }
 function openStockDetail(id){
   const s=state.stocks.find(x=>x.id===id);if(!s)return;
@@ -541,7 +549,7 @@ function openStockDetail(id){
     <div class="grid summary-grid">
       <div class="card"><div class="metric-label">累積股數</div><div class="metric">${i.shares.toLocaleString("zh-TW")}</div></div>
       <div class="card"><div class="metric-label">累積投入</div><div class="metric">${money(i.investment)}</div></div>
-      <div class="card"><div class="metric-label">最新市值</div><div class="metric">${money(i.market)}</div></div>
+      <div class="card"><div class="metric-label">最新市值</div><div class="metric">${money(i.market)}</div><div class="metric-sub">市值日期：${i.marketDate}</div></div>
       <div class="card"><div class="metric-label">總報酬</div><div class="metric">${money(i.ret)}（${pct(i.rate)}）</div></div>
     </div>
     <div class="actions section">
@@ -586,16 +594,80 @@ function renderDashboard(){
   ss.innerHTML=state.stocks.map(s=>{const i=stockInfo(s);return `<div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid #f0e7ea"><span><strong>${esc(s.code)}</strong></span><span>${money(i.market)}　<span style="color:#000000">${pct(i.rate)}</span></span></div>`}).join("")||"<div class='empty'>尚無股票</div>";
 
   const chart=document.getElementById("assetChart");
+  const meta=document.getElementById("assetChartMeta");
   const arr=state.assetSnapshots.slice().sort((a,b)=>a.dataDate.localeCompare(b.dataDate));
-  if(!arr.length){chart.innerHTML="<div class='empty'>目前還沒有歷史資料<br>輸入銀行餘額或更新股票市值後就會開始累積</div>";}
+  if(!arr.length){
+    chart.innerHTML="<div class='empty'>目前還沒有歷史資料<br>輸入銀行餘額或更新股票市值後就會開始累積</div>";
+    meta.textContent="依資產資料日期";
+  }
   else{
-    const max=Math.max(...arr.map(x=>x.total),1);
-    chart.innerHTML=arr.slice(-20).map(x=>`<div class="bar-col"><div class="chart-value">${money(x.total)}</div><div class="chart-bar" style="height:${Math.max(3,x.total/max*160)}px"></div><div class="chart-label">${x.dataDate.slice(5)}</div></div>`).join("");
+    const show=arr.slice(-20);
+    const max=Math.max(...show.map(x=>Number(x.total)||0),1);
+    const latest=show[show.length-1];
+    const prev=show.length>1?show[show.length-2]:null;
+    const diff=prev?Number(latest.total)-Number(prev.total):null;
+    meta.textContent=`最新 ${latest.dataDate}：${money(latest.total)}${diff===null?"":"　｜　較前次 "+(diff>=0?"+":"")+money(diff)}`;
+    chart.innerHTML=show.map(x=>`<div class="bar-col" title="${x.dataDate}｜${money(x.total)}"><div class="chart-value">${money(x.total)}</div><div class="chart-bar" style="height:${Math.max(6,(Number(x.total)||0)/max*160)}px"></div><div class="chart-label">${x.dataDate.slice(5)}</div></div>`).join("");
   }
   document.getElementById("updateDate").textContent="最近更新："+(state.lastUpdated?new Date(state.lastUpdated).toLocaleString("zh-TW",{hour12:false}):"—");
 }
 
 function renderAll(){renderAccounts();renderCards();renderStocks();renderDashboard()}
+
+function exportBackup(){
+  const backup={
+    app:"♡ 阿魚小金庫 ♡",
+    version:1,
+    exportedAt:new Date().toISOString(),
+    data:state
+  };
+  const blob=new Blob([JSON.stringify(backup,null,2)],{type:"application/json;charset=utf-8"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");
+  const stamp=new Date().toISOString().slice(0,10);
+  a.href=url;
+  a.download=`阿魚小金庫_備份_${stamp}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+function importBackup(file){
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=function(){
+    try{
+      const parsed=JSON.parse(reader.result);
+      const data=parsed?.data||parsed;
+      if(!data || !Array.isArray(data.accounts) || !Array.isArray(data.stocks)){
+        throw new Error("不是阿魚小金庫的備份檔");
+      }
+      if(!confirm("確定要用這份備份取代目前資料嗎？\n建議先匯出目前資料留一份備份。"))return;
+      state={
+        accounts:data.accounts||[],
+        accountSnapshots:data.accountSnapshots||[],
+        cards:data.cards||[],
+        stocks:data.stocks||[],
+        purchases:data.purchases||[],
+        marketSnapshots:data.marketSnapshots||[],
+        assetSnapshots:data.assetSnapshots||[],
+        lastUpdated:data.lastUpdated||new Date().toISOString()
+      };
+      localStorage.removeItem(PENDING_KEY);
+      localStorage.removeItem("ayuMoneyBox_cloudInitialized_v1");
+      saveLocal();
+      syncToCloudNow(false);
+      alert("備份已載入，並開始同步到雲端。");
+    }catch(err){
+      alert("備份載入失敗："+err.message);
+    }finally{
+      const input=document.getElementById("importBackupFile");
+      if(input)input.value="";
+    }
+  };
+  reader.readAsText(file,"utf-8");
+}
 
 const GAS_URL="https://script.google.com/macros/s/AKfycbyZtjYGaxb4hMU8xWEnRU86vQbPwudNRIuLphzUtP-ObSMTSYuO8qNZGuVhLMhl_B3mYw/exec";
 const PENDING_KEY="ayuMoneyBox_pendingSync_v1";
