@@ -7,14 +7,14 @@
 <style>
 *{box-sizing:border-box}
 :root{
-  --pink:#e8b2c1;
-  --pink2:#fff3f6;
-  --pink3:#d99baa;
-  --pink4:#fffafb;
+  --pink:#e7b0c0;
+  --pink2:#fff5f7;
+  --pink3:#c9aeb8;
+  --pink4:#fbf8f5;
   --text:#222222;
   --muted:#000000;
-  --line:#eadfe3;
-  --blue:#a9c9dc;
+  --line:#e6e0dc;
+  --blue:#c7dfea;
   --shadow:0 3px 12px rgba(100,80,90,.045);
 }
 body{
@@ -66,7 +66,7 @@ nav{
 .section-head h2{font-size:17px;margin:0}
 .table-wrap{overflow:auto}
 table{width:100%;border-collapse:collapse;min-width:620px}
-th,td{padding:11px 9px;border-bottom:1px solid #f0e7ea;text-align:left;font-size:14px}
+th,td{padding:11px 9px;border-bottom:1px solid #e8e2de;text-align:left;font-size:14px}
 th{color:#000000;background:#f3cbd6}
 td.num{text-align:right}
 input,select{
@@ -79,7 +79,7 @@ input:focus,select:focus{border-color:#d8b4c2}
 .goal{margin:14px 0}
 .goal-head{display:flex;justify-content:space-between;font-size:14px;margin-bottom:7px}
 .bar{
-  height:24px;border-radius:999px;background:#fbe0e8;border:1px solid #e7c4ce;
+  height:24px;border-radius:999px;background:#f8e5df;border:1px solid #e2c7c9;
   overflow:hidden;position:relative;
 }
 .fill{
@@ -94,7 +94,7 @@ input:focus,select:focus{border-color:#d8b4c2}
 .badge{display:inline-block;padding:4px 8px;border-radius:999px;background:var(--pink2);font-size:12px}
 .plus-row{margin-top:10px}
 .history{
-  margin-top:8px;padding:12px;background:#fff8fa;border:1px solid #f0e4e8;
+  margin-top:8px;padding:12px;background:#faf7f2;border:1px solid #e7ddd7;
   border-radius:12px;display:none;
 }
 .history.open{display:block}
@@ -104,7 +104,7 @@ details summary{cursor:pointer;color:#000000;font-size:13px}
   padding:12px 4px 25px;border-bottom:1px solid var(--line);overflow:auto;
 }
 .bar-col{min-width:42px;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:5px}
-.chart-bar{width:25px;background:#dfa5b5;border-radius:7px 7px 2px 2px;min-height:3px}
+.chart-bar{width:25px;background:#c9dce7;border-radius:7px 7px 2px 2px;min-height:3px}
 .chart-label{font-size:10px;color:var(--muted);white-space:nowrap}
 .chart-value{font-size:10px;color:#000000;white-space:nowrap}
 .form-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
@@ -132,6 +132,16 @@ table td.balance-col{
 }
 .sort-th:hover{background:#edc0cd}
 .sort-th span{font-size:.8em;margin-left:3px;font-weight:700}
+
+/* 配色點綴：粉紅＋淡藍＋奶茶，完全不使用綠色 */
+.metric-sub{color:#5f6870}
+.badge{background:#eaf3f7;border-color:#d4e5ec}
+.sync-status{color:#5f6870}
+.goal:nth-child(2) .bar{background:#eaf3f7;border-color:#d4e5ec}
+.goal:nth-child(2) .fill{background:#c7dfea}
+.goal:nth-child(3) .bar{background:#f7eee8;border-color:#e5d7cc}
+.goal:nth-child(3) .fill{background:#d9c4b5}
+
 </style>
 </head>
 <body>
@@ -639,7 +649,7 @@ function renderDashboard(){
   goalText("gCash",cash);goalText("gStock",stocks);goalText("gTotal",total);
 
   const ss=document.getElementById("stockSummary");
-  ss.innerHTML=[...(state.stocks||[])].sort((a,b)=>stockCode(a.code).localeCompare(stockCode(b.code),"zh-TW",{numeric:true})).map(s=>{const i=stockInfo(s);return `<div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid #f0e7ea"><span><strong>${esc(stockLabel(s.code))}</strong></span><span>${money(i.market)}　<span style="color:#000000">${pct(i.rate)}</span></span></div>`}).join("")||"<div class='empty'>尚無股票</div>";
+  ss.innerHTML=[...(state.stocks||[])].sort((a,b)=>stockCode(a.code).localeCompare(stockCode(b.code),"zh-TW",{numeric:true})).map(s=>{const i=stockInfo(s);return `<div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid #e8e2de"><span><strong>${esc(stockLabel(s.code))}</strong></span><span>${money(i.market)}　<span style="color:#000000">${pct(i.rate)}</span></span></div>`}).join("")||"<div class='empty'>尚無股票</div>";
 
   const chart=document.getElementById("assetChart");
   const meta=document.getElementById("assetChartMeta");
