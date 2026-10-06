@@ -1004,6 +1004,67 @@ function stateArrays(st){
   };
 }
 
+// 同一股票代號只能有一筆主資料。
+// 若歷史上曾產生重複的股票主資料，會把購入／賣出／市值紀錄重新指向保留的那一筆，
+// 並把重複主資料的既有初始投入／股數合併後刪除，避免之後同步又長出雙倍資料。
+function dedupeStocksByCode(){
+  const stocks=Array.isArray(state.stocks)?state.stocks:[];
+  const groups=new Map();
+  stocks.forEach(stock=>{
+    const code=stockCode(stock.code);
+    if(!groups.has(code))groups.set(code,[]);
+    groups.get(code).push(stock);
+  });
+
+  let changed=false;
+
+  groups.forEach((group,code)=>{
+    if(group.length<=1)return;
+
+    // 優先保留已有正式投入／股數或歷史紀錄較多的那一筆。
+    const score=stock=>{
+      const childCount=
+        (state.purchases||[]).filter(x=>x.stockId===stock.id).length+
+        (state.sales||[]).filter(x=>x.stockId===stock.id).length+
+        (state.marketSnapshots||[]).filter(x=>x.stockId===stock.id).length;
+      return (Number(stock.initialInvestment)||0)>0?1000000000:0
+        +((Number(stock.initialShares)||0)>0?100000000:0)
+        +childCount;
+    };
+
+    group.sort((a,b)=>score(b)-score(a));
+    const keeper=group[0];
+    let keeperInvestment=Number(keeper.initialInvestment)||0;
+    let keeperShares=Number(keeper.initialShares)||0;
+    const duplicateIds=[];
+
+    group.slice(1).forEach(dup=>{
+      keeperInvestment+=Number(dup.initialInvestment)||0;
+      keeperShares+=Number(dup.initialShares)||0;
+      duplicateIds.push(String(dup.id));
+
+      (state.purchases||[]).forEach(x=>{
+        if(String(x.stockId)===String(dup.id))x.stockId=keeper.id;
+      });
+      (state.sales||[]).forEach(x=>{
+        if(String(x.stockId)===String(dup.id))x.stockId=keeper.id;
+      });
+      (state.marketSnapshots||[]).forEach(x=>{
+        if(String(x.stockId)===String(dup.id))x.stockId=keeper.id;
+      });
+      changed=true;
+    });
+
+    keeper.code=code;
+    keeper.initialInvestment=keeperInvestment;
+    keeper.initialShares=keeperShares;
+
+    state.stocks=state.stocks.filter(x=>!duplicateIds.includes(String(x.id)));
+  });
+
+  return changed;
+}
+
 function collectChangedRows(before,after){
   const changes=[];
   const a=stateArrays(after);
@@ -1149,6 +1210,7 @@ function mergeCloudIntoLocal(cloud){
   });
 
   normalizeCloudDatesAndCodes();
+  dedupeStocksByCode();
 
   // 舊的雲端測試資料如果同一天有多筆，畫面只保留最後一筆。
   const assetByDate=new Map();
@@ -1164,6 +1226,12 @@ function mergeCloudIntoLocal(cloud){
 }
 
 async function initializeCloud(){
+  // 先清理歷史上可能存在的重複股票主資料。
+  // 這一步只會合併相同代號，不會清除不同股票，也不會清除任何歷史紀錄。
+  if(dedupeStocksByCode()){
+    saveLocal();
+  }
+
   // 有尚未送出的本機變更時，先上傳，再讀取雲端，避免覆蓋新資料。
   if(getPending().length){
     await syncToCloudNow(false);
