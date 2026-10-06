@@ -1118,23 +1118,17 @@ async function syncToCloudNow(){
   const status=document.getElementById("syncStatus");
   status.textContent="🔵 同步中…";
 
+  const batch=getPending();
+  if(!batch.length){
+    status.textContent="🔵 已同步";
+    return true;
+  }
+
   try{
-    // 同步只送「有變更的資料」。
-    // 不再因為按下「立即同步」就把整份本機資料覆蓋到雲端，避免舊的 0/0 主檔把正確資料蓋掉。
-    const changes=getPending();
-
-    if(!changes.length){
-      status.textContent="🔵 已同步";
-      return true;
-    }
-
     const response=await fetch(GAS_URL,{
       method:"POST",
       headers:{"Content-Type":"text/plain;charset=utf-8"},
-      body:JSON.stringify({
-        action:"sync",
-        changes:changes
-      })
+      body:JSON.stringify({action:"sync",changes:batch})
     });
 
     if(!response.ok)throw new Error("HTTP "+response.status);
@@ -1142,11 +1136,12 @@ async function syncToCloudNow(){
     const result=await response.json();
     if(!result || result.result!=="success")throw new Error(result?.message || "Google Apps Script 回傳失敗");
 
-    const sentKeys=new Set(changes.map(changeKey));
-    const remaining=getPending().filter(x=>!sentKeys.has(changeKey(x)));
-    setPending(remaining);
+    // 只移除這次真的送出的項目；如果同步期間又產生新修改，保留新修改。
+    const current=getPending();
+    const sentKeys=new Set(batch.map(changeKey));
+    setPending(current.filter(x=>!sentKeys.has(changeKey(x))));
     localStorage.setItem("ayuMoneyBox_cloudInitialized_v1","1");
-    status.textContent="🔵 已同步";
+    status.textContent=getPending().length?"🟠 還有資料待同步":"🔵 已同步";
     return true;
   }catch(err){
     status.textContent="⚠️ 同步失敗，資料已保存在本機";
@@ -1184,9 +1179,54 @@ async function loadFromCloud(){
 function mergeCloudIntoLocal(cloud){
   if(!cloud)return false;
 
+  // 雲端主檔若有重複：保留「有資料／有歷史紀錄」的那一筆，
+  // 其他重複主檔改指向保留 ID，並排入刪除佇列。
+  const duplicateDeletes=[];
+
+  function dedupeAccounts(remoteRows, remoteSnapshots){
+    const groups=new Map();
+    (Array.isArray(remoteRows)?remoteRows:[]).forEach(row=>{
+      const name=String(row.name||"").trim();
+      if(!groups.has(name))groups.set(name,[]);
+      groups.get(name).push(row);
+    });
+
+    const remap=new Map();
+    const clean=[];
+
+    groups.forEach((group,name)=>{
+      group.sort((a,b)=>{
+        const ac=(Array.isArray(remoteSnapshots)?remoteSnapshots:[]).filter(x=>String(x.accountId)===String(a.id)).length;
+        const bc=(Array.isArray(remoteSnapshots)?remoteSnapshots:[]).filter(x=>String(x.accountId)===String(b.id)).length;
+        return bc-ac;
+      });
+
+      const keeper=group[0];
+      clean.push({...keeper,name});
+      group.slice(1).forEach(dup=>{
+        remap.set(String(dup.id),String(keeper.id));
+        duplicateDeletes.push({table:"accounts",id:String(dup.id),delete:true});
+      });
+    });
+
+    return {clean,remap};
+  }
+
+  function remapRows(rows,field,remap){
+    return (Array.isArray(rows)?rows:[]).map(row=>{
+      const copy={...row};
+      if(copy[field]!=null)copy[field]=remap.get(String(copy[field])) || copy[field];
+      return copy;
+    });
+  }
+
+  const remoteAccounts=Array.isArray(cloud.accounts)?cloud.accounts:[];
+  const remoteAccountSnapshots=Array.isArray(cloud.accountSnapshots)?cloud.accountSnapshots:[];
+  const accountResult=dedupeAccounts(remoteAccounts,remoteAccountSnapshots);
+
+  // 股票主檔同樣只保留同代號的一筆；舊的 0/0 重複資料不再留在畫面或雲端。
   const remoteStocks=Array.isArray(cloud.stocks)?cloud.stocks:[];
   const stockIdRemap=new Map();
-  const duplicateRemoteStockIds=[];
   const stockGroups=new Map();
 
   remoteStocks.forEach(stock=>{
@@ -1197,7 +1237,6 @@ function mergeCloudIntoLocal(cloud){
 
   const cleanStocks=[];
   stockGroups.forEach((group,code)=>{
-    // 同一代號只能保留一筆；優先保留有正式投入／股數的資料。
     group.sort((a,b)=>{
       const sa=(Number(a.initialInvestment)||0)>0?1000000000:0;
       const sb=(Number(b.initialInvestment)||0)>0?1000000000:0;
@@ -1211,33 +1250,27 @@ function mergeCloudIntoLocal(cloud){
 
     group.slice(1).forEach(dup=>{
       stockIdRemap.set(String(dup.id),String(keeper.id));
-      duplicateRemoteStockIds.push(String(dup.id));
+      duplicateDeletes.push({table:"stocks",id:String(dup.id),delete:true});
     });
   });
 
-  const remapChildRows=rows=>(Array.isArray(rows)?rows:[]).map(row=>{
-    const copy={...row};
-    if(copy.stockId!=null)copy.stockId=stockIdRemap.get(String(copy.stockId)) || copy.stockId;
-    return copy;
-  });
+  const remapStockRows=rows=>remapRows(rows,"stockId",stockIdRemap);
 
-  state.accounts=Array.isArray(cloud.accounts)?cloud.accounts:[];
-  state.stocks=cleanStocks;
-  state.accountSnapshots=Array.isArray(cloud.accountSnapshots)?cloud.accountSnapshots:[];
+  state.accounts=accountResult.clean;
+  state.accountSnapshots=remapRows(remoteAccountSnapshots,"accountId",accountResult.remap);
   state.cards=Array.isArray(cloud.cards)?cloud.cards:[];
-  state.purchases=remapChildRows(cloud.purchases);
-  state.sales=remapChildRows(cloud.sales);
-  state.marketSnapshots=remapChildRows(cloud.marketSnapshots);
+  state.stocks=cleanStocks;
+  state.purchases=remapStockRows(cloud.purchases);
+  state.sales=remapStockRows(cloud.sales);
+  state.marketSnapshots=remapStockRows(cloud.marketSnapshots);
   state.assetSnapshots=Array.isArray(cloud.assetSnapshots)?cloud.assetSnapshots:[];
 
   normalizeCloudDatesAndCodes();
 
-  // 雲端若還有舊的重複股票主檔，只排入刪除佇列，不動正確資料。
-  if(duplicateRemoteStockIds.length){
-    queueChanges(duplicateRemoteStockIds.map(id=>({table:"stocks",id,delete:true})));
-  }
+  // 重複主檔只排入刪除佇列；不在讀雲端時直接改 Google Sheet。
+  if(duplicateDeletes.length)queueChanges(duplicateDeletes);
 
-  // 舊的雲端測試資料如果同一天有多筆，畫面只保留最後一筆。
+  // 同一天總資產只顯示最後一筆。
   const assetByDate=new Map();
   (state.assetSnapshots||[]).forEach(x=>{
     const d=formatDataDate(x.dataDate);
@@ -1247,12 +1280,11 @@ function mergeCloudIntoLocal(cloud){
 
   localStorage.setItem(KEY,JSON.stringify(state));
   renderAll();
-  return duplicateRemoteStockIds.length>0;
+  return duplicateDeletes.length>0;
 }
 
 async function initializeCloud(){
-  // 啟動時先處理本機尚未同步的變更。
-  // 如果同步失敗，絕對不要拿舊雲端資料覆蓋本機。
+  // 啟動時若有本機待同步資料，先送出；只有成功且清單清空後才讀雲端。
   if(getPending().length){
     const ok=await syncToCloudNow();
     if(!ok || getPending().length){
@@ -1263,11 +1295,11 @@ async function initializeCloud(){
   const cloud=await loadFromCloud();
   if(!cloud)return;
 
-  const hadDuplicateStocks=mergeCloudIntoLocal(cloud);
+  const hadDuplicates=mergeCloudIntoLocal(cloud);
   document.getElementById("syncStatus").textContent="🔵 已同步";
 
-  // 重複主資料的刪除另外送出；失敗則留在 pending，下次再送。
-  if(hadDuplicateStocks)await syncToCloudNow();
+  // 讀取時發現重複主檔，先把畫面整理乾淨，再把重複 ID 實際刪除到雲端。
+  if(hadDuplicates)await syncToCloudNow();
 }
 
 try{
