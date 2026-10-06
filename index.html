@@ -216,7 +216,7 @@ table td.balance-col{
     <div id="cardForm" style="display:none" class="section">
       <div class="form-row">
         <input id="newCardName" placeholder="信用卡名稱">
-        <input id="newCardLimit" type="number" placeholder="額度">
+        <input id="newCardLimit" type="number" step="0.01" placeholder="額度（萬元）">
         <button class="btn primary" onclick="addCard()">儲存</button>
         <button class="btn" onclick="hideCardForm()">取消</button>
       </div>
@@ -245,7 +245,7 @@ table td.balance-col{
     </div>
     <div class="table-wrap section">
       <table>
-        <thead><tr><th>股票</th><th>累積股數</th><th>累積投入</th><th>最新市值</th><th>市值日期</th><th>總報酬</th><th>報酬率</th><th>操作</th></tr></thead>
+        <thead><tr><th>股票</th><th>累積股數</th><th>累積投入</th><th>最新市值</th><th>總報酬</th><th>報酬率</th><th>操作</th></tr></thead>
         <tbody id="stockTable"></tbody>
       </table>
     </div>
@@ -466,22 +466,26 @@ function showCardForm(){document.getElementById("cardForm").style.display="block
 function hideCardForm(){document.getElementById("cardForm").style.display="none"}
 function addCard(){
   const name=document.getElementById("newCardName").value.trim();
-  const limit=Number(document.getElementById("newCardLimit").value);
-  if(!name||isNaN(limit))return alert("請填完整");
-  state.cards.push({id:uid(),name,limit});
+  const wan=Number(document.getElementById("newCardLimit").value);
+  if(!name||isNaN(wan))return alert("請填完整");
+  state.cards.push({id:uid(),name,limit:wan*10000});
   document.getElementById("newCardName").value="";document.getElementById("newCardLimit").value="";
   hideCardForm();saveLocal();scheduleSync();
 }
 function editCard(id){
   const c=state.cards.find(x=>x.id===id);if(!c)return;
-  const v=prompt(c.name+" 新額度",c.limit);if(v===null)return;
+  const currentWan=Number(c.limit)/10000;
+  const v=prompt(c.name+" 新額度（萬元）",currentWan);
+  if(v===null)return;
   if(v===""||isNaN(Number(v)))return;
-  c.limit=Number(v);saveLocal();scheduleSync();
+  c.limit=Number(v)*10000;saveLocal();scheduleSync();
 }
 function renderCards(){
-  document.getElementById("cardTable").innerHTML=state.cards.map(c=>
-    `<tr><td>${esc(c.name)}</td><td>${money(c.limit)}</td><td><button class="btn small" onclick="editCard('${c.id}')">修改額度</button></td></tr>`
-  ).join("")||`<tr><td colspan="3" class="empty">目前沒有信用卡資料</td></tr>`;
+  document.getElementById("cardTable").innerHTML=state.cards.map(c=>{
+    const wan=Number(c.limit)/10000;
+    const display=Number.isInteger(wan)?wan.toLocaleString("zh-TW"):wan.toLocaleString("zh-TW",{maximumFractionDigits:2});
+    return `<tr><td>${esc(c.name)}</td><td>${display} 萬</td><td><button class="btn small" onclick="editCard('${c.id}')">修改額度</button></td></tr>`;
+  }).join("")||`<tr><td colspan="3" class="empty">目前沒有信用卡資料</td></tr>`;
 }
 
 function showStockForm(){document.getElementById("stockForm").style.display="block"}
