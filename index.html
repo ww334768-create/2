@@ -124,21 +124,6 @@ table td.balance-col{
   nav{position:sticky;top:5px;z-index:10}
   .nav-btn{font-size:13px;padding:10px 5px}
 }
-
-.sort-th{
-  appearance:none;
-  border:0;
-  background:transparent;
-  color:#000;
-  font:inherit;
-  font-weight:700;
-  padding:2px 4px;
-  margin:0;
-  cursor:pointer;
-  white-space:nowrap;
-}
-.sort-th:hover{color:#000;opacity:.72}
-.sort-th span{font-size:.8em;margin-left:3px;font-weight:700}
 </style>
 </head>
 <body>
@@ -253,21 +238,15 @@ table td.balance-col{
     </div>
     <div id="stockForm" style="display:none" class="section">
       <div class="form-row">
-        <input id="newStockCode" placeholder="代號，例如 0050">
+        <input id="newStockCode" placeholder="代號，例如 0050" oninput="previewStockName()">
+        <input id="newStockName" placeholder="股票名稱會自動帶入" readonly>
         <button class="btn primary" onclick="addStock()">儲存</button>
         <button class="btn" onclick="hideStockForm()">取消</button>
       </div>
     </div>
     <div class="table-wrap section">
       <table>
-        <thead><tr>
-<th><button class="sort-th" onclick="sortStocks('code')">股票代碼 <span id="stockSortCode">↕</span></button></th>
-<th><button class="sort-th" onclick="sortStocks('shares')">累積股數 <span id="stockSortShares">↕</span></button></th>
-<th><button class="sort-th" onclick="sortStocks('investment')">累積投入 <span id="stockSortInvestment">↕</span></button></th>
-<th><button class="sort-th" onclick="sortStocks('market')">最新市值 <span id="stockSortMarket">↕</span></button></th>
-<th><button class="sort-th" onclick="sortStocks('ret')">總報酬 <span id="stockSortRet">↕</span></button></th>
-<th><button class="sort-th" onclick="sortStocks('rate')">報酬率 <span id="stockSortRate">↕</span></button></th>
-<th>操作</th></tr></thead>
+        <thead><tr><th><button class="sort-th" onclick="sortStocks('code')">股票代碼 <span id="stockSortCode">↕</span></button></th><th>累積股數</th><th>累積投入</th><th>最新市值</th><th>總報酬</th><th>報酬率</th><th>操作</th></tr></thead>
         <tbody id="stockTable"></tbody>
       </table>
     </div>
@@ -285,7 +264,7 @@ table td.balance-col{
 const KEY="ayuMoneyBox_v1";
 const DEFAULT_ACCOUNTS=["中華郵政","國泰世華","玉山銀行","台新銀行","永豐銀行","將來銀行","華南銀行","中國信託","彰化銀行","連線銀行"];
 const DEFAULT_STOCKS=["0050","0056","0052","006208","00878","00919","009816"];
-const STOCK_NAMES={"0050":"元大台灣50","0056":"元大高股息","0052":"富邦科技","006208":"富邦台50","00878":"國泰永續高股息","00919":"群益台灣精選高息","009816":"凱基台灣TOP50"};
+const STOCK_NAMES={"0050":"元大台灣50","0056":"元大高股息","0052":"富邦科技","006208":"富邦台50","00878":"國泰永續高股息","00919":"群益台灣精選高息","009816":"凱基台灣TOP50","2317":"鴻海"};
 function stockName(code){return STOCK_NAMES[stockCode(code)]||"";}
 function stockLabel(code){const c=stockCode(code);const n=stockName(c);return n?`${c}｜${n}`:c;}
 
@@ -513,14 +492,26 @@ function renderCards(){
   }).join("")||`<tr><td colspan="3" class="empty">目前沒有信用卡資料</td></tr>`;
 }
 
-function showStockForm(){document.getElementById("stockForm").style.display="block"}
+function showStockForm(){document.getElementById("stockForm").style.display="block";previewStockName()}
 function hideStockForm(){document.getElementById("stockForm").style.display="none"}
+function previewStockName(){
+  const code=stockCode(document.getElementById("newStockCode").value.trim().toUpperCase());
+  document.getElementById("newStockName").value=STOCK_NAMES[code]||"";
+}
 function addStock(){
-  const code=document.getElementById("newStockCode").value.trim().toUpperCase();
+  const code=stockCode(document.getElementById("newStockCode").value.trim().toUpperCase());
   if(!code)return alert("請輸入股票／ETF代號");
-  if(state.stocks.some(x=>x.code===code))return alert("這支已經存在");
+  if(state.stocks.some(x=>stockCode(x.code)===code))return alert("這支已經存在");
+  if(!STOCK_NAMES[code]){
+    const name=prompt("找不到這個代號的內建名稱，請輸入股票／ETF名稱","");
+    if(name===null)return;
+    const trimmed=name.trim();
+    if(!trimmed)return alert("請輸入股票／ETF名稱");
+    STOCK_NAMES[code]=trimmed;
+  }
   state.stocks.push({id:uid(),code,initialInvestment:0,initialShares:0});
   document.getElementById("newStockCode").value="";
+  document.getElementById("newStockName").value="";
   hideStockForm();saveLocal();scheduleSync();
 }
 function setupInitialStock(id){
@@ -561,20 +552,12 @@ function sortStocks(key){
 function renderStocks(){
   const tb=document.getElementById("stockTable");
   const rows=[...(state.stocks||[])].sort((a,b)=>{
-    if(stockSort.key==="code"){
-      return stockCode(a.code).localeCompare(stockCode(b.code),"zh-TW",{numeric:true})*stockSort.dir;
-    }
-    const ai=stockInfo(a), bi=stockInfo(b);
-    const av=Number(ai[stockSort.key]??0), bv=Number(bi[stockSort.key]??0);
-    return (av-bv)*stockSort.dir;
+    const av=stockCode(a.code);
+    const bv=stockCode(b.code);
+    return av.localeCompare(bv,"zh-TW",{numeric:true})*stockSort.dir;
   });
 
-  ["Code","Shares","Investment","Market","Ret","Rate"].forEach(name=>{
-    const el=document.getElementById("stockSort"+name);
-    if(el)el.textContent="↕";
-  });
-  const active={code:"Code",shares:"Shares",investment:"Investment",market:"Market",ret:"Ret",rate:"Rate"}[stockSort.key];
-  const sortIcon=document.getElementById("stockSort"+active);
+  const sortIcon=document.getElementById("stockSortCode");
   if(sortIcon)sortIcon.textContent=stockSort.dir===1?"↑":"↓";
 
   tb.innerHTML=rows.map(s=>{
