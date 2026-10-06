@@ -365,6 +365,7 @@ function loadState(){
       s.cards ||= [];
       s.stocks ||= DEFAULT_STOCKS.map(code=>({id:uid(),code,initialInvestment:0,initialShares:0}));
       s.purchases ||= [];
+      s.sales ||= [];
       s.marketSnapshots ||= [];
       s.assetSnapshots ||= [];
       return s;
@@ -376,6 +377,7 @@ function loadState(){
     cards:[],
     stocks:DEFAULT_STOCKS.map(code=>({id:uid(),code,initialInvestment:0,initialShares:0})),
     purchases:[],
+    sales:[],
     marketSnapshots:[],
     assetSnapshots:[],
     lastUpdated:null
@@ -469,6 +471,11 @@ function normalizeCloudDatesAndCodes(){
     dataDate:formatDataDate(x.dataDate)
   }));
 
+  state.sales=(state.sales||[]).map(x=>({
+    ...x,
+    dataDate:formatDataDate(x.dataDate)
+  }));
+
   state.assetSnapshots=(state.assetSnapshots||[]).map(x=>({
     ...x,
     dataDate:formatDataDate(x.dataDate)
@@ -487,14 +494,63 @@ function cashTotal(){
   return state.accounts.reduce((sum,a)=>sum+(Number(latestAccount(a.id)?.balance)||0),0);
 }
 function stockInfo(stock){
-  const ps=state.purchases.filter(x=>x.stockId===stock.id);
-  const investment=(Number(stock.initialInvestment)||0)+ps.reduce((s,x)=>s+Number(x.amount||0),0);
-  const shares=(Number(stock.initialShares)||0)+ps.reduce((s,x)=>s+Number(x.shares||0),0);
+  const purchases=state.purchases.filter(x=>x.stockId===stock.id);
+  const sales=state.sales.filter(x=>x.stockId===stock.id);
+  const acquiredInvestment=(Number(stock.initialInvestment)||0)+purchases.reduce((s,x)=>s+Number(x.amount||0),0);
+  const acquiredShares=(Number(stock.initialShares)||0)+purchases.reduce((s,x)=>s+Number(x.shares||0),0);
+
+  // 用平均成本法計算賣出後剩餘成本與已實現損益。
+  // 同一天若同時有購入與賣出，先算購入再算賣出。
+  const events=[
+    ...purchases.map(x=>({type:"purchase",dataDate:formatDataDate(x.dataDate),amount:Number(x.amount)||0,shares:Number(x.shares)||0})),
+    ...sales.map(x=>({type:"sale",dataDate:formatDataDate(x.dataDate),amount:Number(x.amount)||0,shares:Number(x.shares)||0}))
+  ].sort((a,b)=>{
+    const d=a.dataDate.localeCompare(b.dataDate);
+    if(d!==0)return d;
+    if(a.type===b.type)return 0;
+    return a.type==="purchase"?-1:1;
+  });
+
+  let remainingShares=Number(stock.initialShares)||0;
+  let remainingCost=Number(stock.initialInvestment)||0;
+  let realizedProfit=0;
+  let saleProceeds=0;
+  let soldShares=0;
+
+  events.forEach(e=>{
+    if(e.type==="purchase"){
+      remainingShares+=e.shares;
+      remainingCost+=e.amount;
+    }else if(e.shares>0 && remainingShares>0){
+      const sellShares=Math.min(e.shares,remainingShares);
+      const avgCost=remainingShares>0?remainingCost/remainingShares:0;
+      const costRemoved=avgCost*sellShares;
+      remainingShares-=sellShares;
+      remainingCost=Math.max(0,remainingCost-costRemoved);
+      saleProceeds+=e.amount;
+      realizedProfit+=e.amount-costRemoved;
+      soldShares+=sellShares;
+    }
+  });
+
   const ms=state.marketSnapshots.filter(x=>x.stockId===stock.id).sort((a,b)=>b.dataDate.localeCompare(a.dataDate))[0];
   const market=Number(ms?.marketValue)||0;
-  const ret=market-investment;
-  const rate=investment?ret/investment*100:0;
-  return {investment,shares,market,ret,rate,marketDate:ms?.dataDate||"—"};
+  const unrealizedReturn=market-remainingCost;
+  const totalReturn=unrealizedReturn+realizedProfit;
+  const rate=acquiredInvestment?totalReturn/acquiredInvestment*100:0;
+  return {
+    investment:acquiredInvestment,
+    shares:remainingShares,
+    market,
+    ret:totalReturn,
+    rate,
+    marketDate:ms?.dataDate||"—",
+    remainingCost,
+    realizedProfit,
+    unrealizedReturn,
+    saleProceeds,
+    soldShares
+  };
 }
 function stockTotal(){
   return state.stocks.reduce((s,x)=>s+stockInfo(x).market,0);
@@ -622,6 +678,23 @@ function addPurchase(id){
   state.purchases.push({id:uid(),stockId:id,dataDate:d,amount:Number(amount),shares:Number(shares)});
   saveLocal();scheduleSync();openStockDetail(id);
 }
+function addSale(id){
+  const s=state.stocks.find(x=>x.id===id);if(!s)return;
+  const info=stockInfo(s);
+  if(info.shares<=0)return alert("目前沒有可賣出的持股");
+
+  const d=prompt("賣出日期",today());if(!d)return;
+  const shares=prompt(s.code+" 本次賣出股數","");if(shares===null)return;
+  const amount=prompt(s.code+" 本次賣出實收金額","");if(amount===null)return;
+  const sellShares=Number(shares), sellAmount=Number(amount);
+  if(!Number.isFinite(sellShares)||sellShares<=0)return alert("請輸入大於 0 的賣出股數");
+  if(sellShares>info.shares+1e-8)return alert("賣出股數不能超過目前持股："+info.shares.toLocaleString("zh-TW")+" 股");
+  if(!Number.isFinite(sellAmount)||sellAmount<0)return alert("請輸入 0 以上的賣出金額");
+
+  state.sales ||= [];
+  state.sales.push({id:uid(),stockId:id,dataDate:d,amount:sellAmount,shares:sellShares});
+  saveLocal();scheduleSync();openStockDetail(id);
+}
 function addMarketValue(id){
   const s=state.stocks.find(x=>x.id===id);if(!s)return;
   const d=prompt("市值資料日期",today());if(!d)return;
@@ -672,6 +745,7 @@ function renderStocks(){
       <td><div class="actions">
         <button class="btn small" onclick="openStockDetail('${s.id}')">明細</button>
         <button class="btn small" onclick="addMarketValue('${s.id}')">更新市值</button>
+        <button class="btn small" onclick="addSale('${s.id}')">賣出</button>
       </div></td>
     </tr>`;
   }).join("")||`<tr><td colspan="7" class="empty">目前沒有股票</td></tr>`;
@@ -681,22 +755,27 @@ function openStockDetail(id){
   const i=stockInfo(s);
   const purchases=state.purchases.filter(x=>x.stockId===id).sort((a,b)=>b.dataDate.localeCompare(a.dataDate));
   const markets=state.marketSnapshots.filter(x=>x.stockId===id).sort((a,b)=>b.dataDate.localeCompare(a.dataDate));
+  const sales=(state.sales||[]).filter(x=>x.stockId===id).sort((a,b)=>b.dataDate.localeCompare(a.dataDate));
   document.getElementById("stockDetailCard").style.display="block";
   document.getElementById("detailTitle").textContent="📈 "+stockLabel(s.code)+" 明細";
   document.getElementById("stockDetail").innerHTML=`
     <div class="grid summary-grid">
       <div class="card"><div class="metric-label">累積股數</div><div class="metric">${i.shares.toLocaleString("zh-TW")}</div></div>
-      <div class="card"><div class="metric-label">累積投入</div><div class="metric">${money(i.investment)}</div></div>
+      <div class="card"><div class="metric-label">累積投入</div><div class="metric">${money(i.investment)}</div><div class="metric-sub">目前剩餘成本：${money(i.remainingCost)}</div></div>
       <div class="card"><div class="metric-label">最新市值</div><div class="metric">${money(i.market)}</div><div class="metric-sub">市值日期：${i.marketDate}</div></div>
-      <div class="card"><div class="metric-label">總報酬</div><div class="metric">${money(i.ret)}（${pct(i.rate)}）</div></div>
+      <div class="card"><div class="metric-label">總報酬</div><div class="metric">${money(i.ret)}（${pct(i.rate)}）</div><div class="metric-sub">已實現：${money(i.realizedProfit)}　未實現：${money(i.unrealizedReturn)}</div></div>
     </div>
     <div class="actions section">
       <button class="btn primary" onclick="setupInitialStock('${id}')">設定既有持股</button>
       <button class="btn primary" onclick="addPurchase('${id}')">＋新增購入</button>
+      <button class="btn primary" onclick="addSale('${id}')">＋新增賣出</button>
       <button class="btn primary" onclick="addMarketValue('${id}')">＋更新市值</button>
     </div>
     <details class="section"><summary>購入紀錄（${purchases.length} 筆）</summary>
       ${purchases.length?purchases.map(x=>`<div class="history open">${x.dataDate}　${money(x.amount)}　${Number(x.shares).toLocaleString("zh-TW")} 股</div>`).join(""):"<div class='empty'>尚無購入紀錄</div>"}
+    </details>
+    <details class="section"><summary>賣出紀錄（${sales.length} 筆）</summary>
+      ${sales.length?sales.map(x=>`<div class="history open">${x.dataDate}　${money(x.amount)}　${Number(x.shares).toLocaleString("zh-TW")} 股</div>`).join(""):"<div class='empty'>尚無賣出紀錄</div>"}
     </details>
     <details class="section"><summary>市值紀錄（${markets.length} 筆）</summary>
       ${markets.length?markets.map(x=>`<div class="history open">${x.dataDate}　${money(x.marketValue)}</div>`).join(""):"<div class='empty'>尚無市值紀錄</div>"}
@@ -793,6 +872,7 @@ function importBackup(file){
         cards:data.cards||[],
         stocks:data.stocks||[],
         purchases:data.purchases||[],
+        sales:data.sales||[],
         marketSnapshots:data.marketSnapshots||[],
         assetSnapshots:data.assetSnapshots||[],
         lastUpdated:data.lastUpdated||new Date().toISOString()
@@ -821,6 +901,7 @@ const TABLE_MAP={
   cards:"cards",
   stocks:"stocks",
   purchases:"purchases",
+  sales:"sales",
   marketSnapshots:"marketSnapshots",
   assetSnapshots:"assetSnapshots"
 };
@@ -852,6 +933,7 @@ function stateArrays(st){
     cards:st.cards||[],
     stocks:st.stocks||[],
     purchases:st.purchases||[],
+    sales:st.sales||[],
     marketSnapshots:st.marketSnapshots||[],
     assetSnapshots:st.assetSnapshots||[]
   };
@@ -984,6 +1066,7 @@ function mergeCloudIntoLocal(cloud){
     "accountSnapshots",
     "cards",
     "purchases",
+    "sales",
     "marketSnapshots",
     "assetSnapshots"
   ].forEach(table=>{
