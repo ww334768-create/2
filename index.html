@@ -768,6 +768,31 @@ function addMarketValue(id){
   state.marketSnapshots.push({id:uid(),stockId:id,dataDate:d,marketValue:Number(v)});
   finishEdit();openStockDetail(id);
 }
+function deleteStock(id){
+  const s=state.stocks.find(x=>x.id===id);
+  if(!s)return;
+
+  const purchases=state.purchases.filter(x=>x.stockId===id);
+  const sales=(state.sales||[]).filter(x=>x.stockId===id);
+  const markets=state.marketSnapshots.filter(x=>x.stockId===id);
+
+  const hasRecords=purchases.length||sales.length||markets.length;
+  const message=hasRecords
+    ? `確定要刪除「${stockLabel(s.code)}」嗎？\n\n這會一併刪除：\n・股票主資料\n・購入紀錄 ${purchases.length} 筆\n・賣出紀錄 ${sales.length} 筆\n・市值紀錄 ${markets.length} 筆\n\n刪除後會同步到 Google 試算表。`
+    : `確定要刪除「${stockLabel(s.code)}」嗎？\n\n這支股票目前沒有購入、賣出或市值紀錄。`;
+
+  if(!confirm(message))return;
+
+  state.stocks=state.stocks.filter(x=>x.id!==id);
+  state.purchases=state.purchases.filter(x=>x.stockId!==id);
+  state.sales=(state.sales||[]).filter(x=>x.stockId!==id);
+  state.marketSnapshots=state.marketSnapshots.filter(x=>x.stockId!==id);
+
+  saveLocal();
+  scheduleSync();
+  closeStockDetail();
+}
+
 function sortStocks(key){
   if(stockSort.key===key){
     stockSort.dir*=-1;
@@ -810,6 +835,7 @@ function renderStocks(){
         <button class="btn small" onclick="openStockDetail('${s.id}')">明細</button>
         <button class="btn small" onclick="addMarketValue('${s.id}')">更新市值</button>
         <button class="btn small" onclick="addSale('${s.id}')">賣出</button>
+        <button class="btn small" onclick="deleteStock('${s.id}')">🗑️ 刪除股票</button>
       </div></td>
     </tr>`;
   }).join("")||`<tr><td colspan="7" class="empty">目前沒有股票</td></tr>`;
@@ -832,6 +858,7 @@ function openStockDetail(id){
     <div class="actions section">
       <button class="btn primary" onclick="setupInitialStock('${id}')">設定既有持股</button>
       <button class="btn primary" onclick="addPurchase('${id}')">＋新增購入</button>
+      <button class="btn" onclick="deleteStock('${id}')">🗑️ 刪除這支股票</button>
       <button class="btn primary" onclick="addSale('${id}')">＋新增賣出</button>
       <button class="btn primary" onclick="addMarketValue('${id}')">＋更新市值</button>
     </div>
@@ -1027,7 +1054,7 @@ function dedupeStocksByCode(){
         (state.purchases||[]).filter(x=>x.stockId===stock.id).length+
         (state.sales||[]).filter(x=>x.stockId===stock.id).length+
         (state.marketSnapshots||[]).filter(x=>x.stockId===stock.id).length;
-      return (Number(stock.initialInvestment)||0)>0?1000000000:0
+      return ((Number(stock.initialInvestment)||0)>0?1000000000:0)
         +((Number(stock.initialShares)||0)>0?100000000:0)
         +childCount;
     };
