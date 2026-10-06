@@ -1,0 +1,786 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>♡ 阿魚小金庫 ♡</title>
+<style>
+*{box-sizing:border-box}
+:root{
+  --pink:#e8b2c1;
+  --pink2:#fff3f6;
+  --pink3:#d99baa;
+  --pink4:#fffafb;
+  --text:#222222;
+  --muted:#000000;
+  --line:#eadfe3;
+  --blue:#a9c9dc;
+  --shadow:0 3px 12px rgba(100,80,90,.045);
+}
+body{
+  margin:0;background:#ffffff;color:var(--text);
+  font-family:Arial,"Noto Sans TC","Microsoft JhengHei",sans-serif;
+}
+button,input,select{font:inherit}
+button{cursor:pointer}
+.app{max-width:1180px;margin:auto;padding:18px}
+header{
+  background:#fff;border:1px solid #eee4e7;border-top:3px solid var(--pink);border-radius:18px;
+  padding:18px 22px;box-shadow:var(--shadow);margin-bottom:16px;
+}
+.brand{font-size:25px;font-weight:700}
+.subtitle{font-size:13px;color:var(--muted);margin-top:5px}
+.syncbar{display:flex;align-items:center;gap:10px;margin-top:12px;flex-wrap:wrap}
+.sync-status{font-size:13px;color:#000000}
+.btn{
+  border:1px solid #e3c0c9;background:var(--pink2);color:#000000;
+  border-radius:10px;padding:8px 13px;
+}
+.btn:hover{background:var(--pink)}
+.btn.primary{background:var(--pink);font-weight:600}
+nav{
+  display:flex;gap:8px;background:#fff;border:1px solid #eadfe3;
+  padding:7px;border-radius:15px;margin-bottom:16px;
+}
+.nav-btn{
+  flex:1;border:0;background:transparent;color:#000000;
+  padding:11px;border-radius:10px;font-weight:600;
+}
+.nav-btn.active{background:var(--pink2);color:#57484e}
+.page{display:none}.page.active{display:block}
+.grid{display:grid;gap:14px}
+.summary-grid{grid-template-columns:repeat(4,1fr)}
+.card{
+  background:#fff;border:1px solid #eadfe3;border-radius:18px;
+  padding:17px;box-shadow:var(--shadow);
+}
+.card-title{font-weight:700;margin-bottom:12px}
+.metric-label{font-size:13px;color:var(--muted)}
+.metric{font-size:25px;font-weight:700;margin-top:6px}
+.metric-sub{font-size:12px;color:var(--muted);margin-top:5px}
+.section{margin-top:16px}
+.section-head{
+  display:flex;align-items:center;justify-content:space-between;
+  gap:10px;margin-bottom:10px;
+}
+.section-head h2{font-size:17px;margin:0}
+.table-wrap{overflow:auto}
+table{width:100%;border-collapse:collapse;min-width:620px}
+th,td{padding:11px 9px;border-bottom:1px solid #f0e7ea;text-align:left;font-size:14px}
+th{color:#000000;background:#f3cbd6}
+td.num{text-align:right}
+input,select{
+  border:1px solid #e3d7dc;border-radius:9px;padding:8px 9px;
+  background:#fff;color:var(--text);outline:none;
+}
+input:focus,select:focus{border-color:#d8b4c2}
+.money{text-align:right}
+.progress-card{padding:16px}
+.goal{margin:14px 0}
+.goal-head{display:flex;justify-content:space-between;font-size:14px;margin-bottom:7px}
+.bar{
+  height:24px;border-radius:999px;background:#fbe0e8;border:1px solid #e7c4ce;
+  overflow:hidden;position:relative;
+}
+.fill{
+  height:100%;background:#e8b2c1;border-radius:999px;position:relative;
+  transition:width .25s;
+}
+.fill span{position:absolute;right:5px;top:1px;font-size:17px}
+.goal-foot{font-size:12px;color:var(--muted);margin-top:5px}
+.empty{padding:24px;text-align:center;color:var(--muted);font-size:14px}
+.actions{display:flex;gap:7px;flex-wrap:wrap}
+.small{font-size:12px;padding:6px 9px}
+.badge{display:inline-block;padding:4px 8px;border-radius:999px;background:var(--pink2);font-size:12px}
+.plus-row{margin-top:10px}
+.history{
+  margin-top:8px;padding:12px;background:#fff8fa;border:1px solid #f0e4e8;
+  border-radius:12px;display:none;
+}
+.history.open{display:block}
+details summary{cursor:pointer;color:#000000;font-size:13px}
+.chart{
+  height:230px;display:flex;align-items:flex-end;gap:8px;
+  padding:12px 4px 25px;border-bottom:1px solid var(--line);overflow:auto;
+}
+.bar-col{min-width:42px;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:5px}
+.chart-bar{width:25px;background:#dfa5b5;border-radius:7px 7px 2px 2px;min-height:3px}
+.chart-label{font-size:10px;color:var(--muted);white-space:nowrap}
+.chart-value{font-size:10px;color:#000000;white-space:nowrap}
+.form-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.form-row>*{min-width:120px}
+.balance-col,
+table td.balance-col{
+  text-align:center !important;
+}
+@media(max-width:850px){
+  .summary-grid{grid-template-columns:repeat(2,1fr)}
+}
+@media(max-width:560px){
+  .app{padding:10px}
+  .summary-grid{grid-template-columns:1fr 1fr;gap:9px}
+  .card{padding:13px}
+  .metric{font-size:20px}
+  nav{position:sticky;top:5px;z-index:10}
+  .nav-btn{font-size:13px;padding:10px 5px}
+}
+</style>
+</head>
+<body>
+<div class="app">
+<header>
+  <div class="brand">♡ 阿魚小金庫 ♡</div>
+  <div class="subtitle">懶人版財務小管家｜只記重要的，其他通通不要管 😂</div>
+  <div class="syncbar">
+    <button class="btn primary" id="syncBtn">☁️ 立即同步</button>
+    <span class="sync-status" id="syncStatus">⚪ 尚未開始</span>
+    <span class="badge" id="updateDate">最近更新：—</span>
+  </div>
+</header>
+
+<nav>
+  <button class="nav-btn active" data-page="dashboard">🏠 儀表板</button>
+  <button class="nav-btn" data-page="assets">🏦 資產</button>
+  <button class="nav-btn" data-page="stocks">📈 股票</button>
+</nav>
+
+<main>
+<section id="dashboard" class="page active">
+  <div class="grid summary-grid">
+    <div class="card"><div class="metric-label">🏦 現金資產</div><div class="metric" id="dCash">$0</div><div class="metric-sub">各帳戶最新餘額</div></div>
+    <div class="card"><div class="metric-label">📈 股票市值</div><div class="metric" id="dStocks">$0</div><div class="metric-sub">各股票最新市值</div></div>
+    <div class="card"><div class="metric-label">💰 總資產</div><div class="metric" id="dTotal">$0</div><div class="metric-sub" id="dChange">變化：—</div></div>
+    <div class="card"><div class="metric-label">📊 股票總報酬</div><div class="metric" id="dReturn">$0</div><div class="metric-sub" id="dReturnRate">投報率：—</div></div>
+  </div>
+
+  <div class="card section progress-card">
+    <div class="card-title">🏡 100 萬小目標</div>
+    <div class="goal">
+      <div class="goal-head"><span>🏦 存款</span><strong id="gCashText">$0 / $1,000,000</strong></div>
+      <div class="bar"><div class="fill" id="gCash"><span>🐣</span></div></div>
+      <div class="goal-foot" id="gCashFoot">還差 $1,000,000</div>
+    </div>
+    <div class="goal">
+      <div class="goal-head"><span>📈 股票</span><strong id="gStockText">$0 / $1,000,000</strong></div>
+      <div class="bar"><div class="fill" id="gStock"><span>🐣</span></div></div>
+      <div class="goal-foot" id="gStockFoot">還差 $1,000,000</div>
+    </div>
+    <div class="goal">
+      <div class="goal-head"><span>💰 總資產</span><strong id="gTotalText">$0 / $1,000,000</strong></div>
+      <div class="bar"><div class="fill" id="gTotal"><span>🐣</span></div></div>
+      <div class="goal-foot" id="gTotalFoot">還差 $1,000,000</div>
+    </div>
+  </div>
+
+  <div class="card section">
+    <div class="section-head"><h2>📊 總資產歷史</h2><span class="metric-sub">依資產資料日期</span></div>
+    <div id="assetChart" class="chart"><div class="empty">目前還沒有歷史資料</div></div>
+  </div>
+
+  <div class="card section">
+    <div class="section-head"><h2>📈 股票摘要</h2><button class="btn small" onclick="goPage('stocks')">查看全部 →</button></div>
+    <div id="stockSummary"></div>
+  </div>
+</section>
+
+<section id="assets" class="page">
+  <div class="card">
+    <div class="section-head">
+      <h2>🏦 銀行／現金資產</h2>
+      <button class="btn primary" onclick="showAccountForm()">＋新增帳戶</button>
+    </div>
+    <div id="accountForm" style="display:none" class="section">
+      <div class="form-row">
+        <input id="newAccountName" placeholder="帳戶名稱">
+        <button class="btn primary" onclick="addAccount()">儲存帳戶</button>
+        <button class="btn" onclick="hideAccountForm()">取消</button>
+      </div>
+    </div>
+    <div class="table-wrap section">
+      <table>
+        <thead><tr><th>帳戶</th><th>最新資料日期</th><th class="balance-col">餘額</th><th>操作</th></tr></thead>
+        <tbody id="accountTable"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card section">
+    <div class="section-head">
+      <h2>💳 信用卡額度</h2>
+      <button class="btn primary" onclick="showCardForm()">＋新增信用卡</button>
+    </div>
+    <div id="cardForm" style="display:none" class="section">
+      <div class="form-row">
+        <input id="newCardName" placeholder="信用卡名稱">
+        <input id="newCardLimit" type="number" placeholder="額度">
+        <button class="btn primary" onclick="addCard()">儲存</button>
+        <button class="btn" onclick="hideCardForm()">取消</button>
+      </div>
+    </div>
+    <div class="table-wrap section">
+      <table>
+        <thead><tr><th>信用卡</th><th>額度</th><th>操作</th></tr></thead>
+        <tbody id="cardTable"></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section id="stocks" class="page">
+  <div class="card">
+    <div class="section-head">
+      <h2>📈 股票／ETF</h2>
+      <button class="btn primary" onclick="showStockForm()">＋新增股票／ETF</button>
+    </div>
+    <div id="stockForm" style="display:none" class="section">
+      <div class="form-row">
+        <input id="newStockCode" placeholder="代號，例如 0050">
+        <button class="btn primary" onclick="addStock()">儲存</button>
+        <button class="btn" onclick="hideStockForm()">取消</button>
+      </div>
+    </div>
+    <div class="table-wrap section">
+      <table>
+        <thead><tr><th>股票</th><th>累積股數</th><th>累積投入</th><th>最新市值</th><th>總報酬</th><th>報酬率</th><th>操作</th></tr></thead>
+        <tbody id="stockTable"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card section" id="stockDetailCard" style="display:none">
+    <div class="section-head"><h2 id="detailTitle">股票明細</h2><button class="btn small" onclick="closeStockDetail()">關閉</button></div>
+    <div id="stockDetail"></div>
+  </div>
+</section>
+</main>
+</div>
+
+<script>
+const KEY="ayuMoneyBox_v1";
+const DEFAULT_ACCOUNTS=["中華郵政","國泰世華","玉山銀行","台新銀行","永豐銀行","將來銀行","華南銀行","中國信託","彰化銀行","連線銀行"];
+const DEFAULT_STOCKS=["0050","0056","0052","006208","00878","00919","009816"];
+
+let state=loadState();
+
+function loadState(){
+  try{
+    const raw=localStorage.getItem(KEY);
+    if(raw){
+      const s=JSON.parse(raw);
+      s.accounts ||= DEFAULT_ACCOUNTS.map(name=>({id:uid(),name}));
+      s.accountSnapshots ||= [];
+      s.cards ||= [];
+      s.stocks ||= DEFAULT_STOCKS.map(code=>({id:uid(),code,initialInvestment:0,initialShares:0}));
+      s.purchases ||= [];
+      s.marketSnapshots ||= [];
+      s.assetSnapshots ||= [];
+      return s;
+    }
+  }catch(e){}
+  return {
+    accounts:DEFAULT_ACCOUNTS.map(name=>({id:uid(),name})),
+    accountSnapshots:[],
+    cards:[],
+    stocks:DEFAULT_STOCKS.map(code=>({id:uid(),code,initialInvestment:0,initialShares:0})),
+    purchases:[],
+    marketSnapshots:[],
+    assetSnapshots:[],
+    lastUpdated:null
+  };
+}
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7)}
+function saveLocal(){
+  let before={};
+  try{before=JSON.parse(localStorage.getItem(KEY)||"{}")}catch(e){}
+  const changes=collectChangedRows(before,state);
+
+  state.lastUpdated=new Date().toISOString();
+  localStorage.setItem(KEY,JSON.stringify(state));
+
+  queueChanges(changes);
+  renderAll();
+}
+
+function money(n){return "$"+Math.round(Number(n)||0).toLocaleString("zh-TW")}
+function pct(n){return (Number(n)||0).toFixed(2)+"%"}
+function today(){return new Date().toISOString().slice(0,10)}
+function esc(s){return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}
+
+function goPage(id){
+  document.querySelectorAll(".page").forEach(x=>x.classList.toggle("active",x.id===id));
+  document.querySelectorAll(".nav-btn").forEach(x=>x.classList.toggle("active",x.dataset.page===id));
+}
+document.querySelectorAll(".nav-btn").forEach(b=>b.onclick=()=>goPage(b.dataset.page));
+
+function formatDataDate(value){
+  if(value===null || value===undefined || value==="") return "";
+  const str=String(value);
+
+  // 已經是 YYYY-MM-DD，直接保留。
+  if(/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
+
+  // Google Sheets Date 讀回來會是 ISO UTC；轉成台灣日期。
+  const d=new Date(str);
+  if(!isNaN(d.getTime())){
+    const parts=new Intl.DateTimeFormat("en-CA",{
+      timeZone:"Asia/Taipei",
+      year:"numeric",
+      month:"2-digit",
+      day:"2-digit"
+    }).formatToParts(d);
+    const obj={};
+    parts.forEach(x=>{if(x.type!=="literal")obj[x.type]=x.value});
+    if(obj.year&&obj.month&&obj.day) return `${obj.year}-${obj.month}-${obj.day}`;
+  }
+
+  return str;
+}
+
+function stockCode(code){
+  const v=String(code??"").trim();
+
+  // Google Sheets 已經把預設 ETF 代號轉成數字時，補回原本代號。
+  const known={
+    "50":"0050",
+    "56":"0056",
+    "52":"0052",
+    "6208":"006208",
+    "878":"00878",
+    "919":"00919",
+    "9816":"009816",
+    "0050":"0050",
+    "0056":"0056",
+    "0052":"0052",
+    "006208":"006208",
+    "00878":"00878",
+    "00919":"00919",
+    "009816":"009816"
+  };
+
+  return known[v] || v;
+}
+
+function normalizeCloudDatesAndCodes(){
+  state.accountSnapshots=(state.accountSnapshots||[]).map(x=>({
+    ...x,
+    dataDate:formatDataDate(x.dataDate)
+  }));
+
+  state.purchases=(state.purchases||[]).map(x=>({
+    ...x,
+    dataDate:formatDataDate(x.dataDate)
+  }));
+
+  state.marketSnapshots=(state.marketSnapshots||[]).map(x=>({
+    ...x,
+    dataDate:formatDataDate(x.dataDate)
+  }));
+
+  state.assetSnapshots=(state.assetSnapshots||[]).map(x=>({
+    ...x,
+    dataDate:formatDataDate(x.dataDate)
+  }));
+
+  state.stocks=(state.stocks||[]).map(x=>({
+    ...x,
+    code:stockCode(x.code)
+  }));
+}
+
+function latestAccount(id){
+  return state.accountSnapshots.filter(x=>x.accountId===id).sort((a,b)=>b.dataDate.localeCompare(a.dataDate))[0];
+}
+function cashTotal(){
+  return state.accounts.reduce((sum,a)=>sum+(Number(latestAccount(a.id)?.balance)||0),0);
+}
+function stockInfo(stock){
+  const ps=state.purchases.filter(x=>x.stockId===stock.id);
+  const investment=(Number(stock.initialInvestment)||0)+ps.reduce((s,x)=>s+Number(x.amount||0),0);
+  const shares=(Number(stock.initialShares)||0)+ps.reduce((s,x)=>s+Number(x.shares||0),0);
+  const ms=state.marketSnapshots.filter(x=>x.stockId===stock.id).sort((a,b)=>b.dataDate.localeCompare(a.dataDate))[0];
+  const market=Number(ms?.marketValue)||0;
+  const ret=market-investment;
+  const rate=investment?ret/investment*100:0;
+  return {investment,shares,market,ret,rate,marketDate:ms?.dataDate||"—"};
+}
+function stockTotal(){
+  return state.stocks.reduce((s,x)=>s+stockInfo(x).market,0);
+}
+function totalAssets(){return cashTotal()+stockTotal()}
+
+function addAssetSnapshot(){
+  const total=totalAssets();
+  if(total===0)return;
+  const d=prompt("這筆總資產代表哪一天？",today());
+  if(!d)return;
+  state.assetSnapshots=state.assetSnapshots.filter(x=>x.dataDate!==d);
+  state.assetSnapshots.push({id:uid(),dataDate:d,total});
+}
+
+function finishEdit(){
+  addAssetSnapshot();
+  saveLocal();
+  scheduleSync();
+}
+
+function scheduleSync(){
+  clearTimeout(window.syncTimer);
+  window.syncTimer=setTimeout(syncToCloudNow,700);
+}
+
+function showAccountForm(){document.getElementById("accountForm").style.display="block"}
+function hideAccountForm(){document.getElementById("accountForm").style.display="none"}
+function addAccount(){
+  const n=document.getElementById("newAccountName").value.trim();
+  if(!n)return alert("請輸入帳戶名稱");
+  if(state.accounts.some(x=>x.name===n))return alert("這個帳戶已經有了");
+  state.accounts.push({id:uid(),name:n});
+  document.getElementById("newAccountName").value="";
+  hideAccountForm();saveLocal();scheduleSync();
+}
+function editAccount(aid){
+  const a=state.accounts.find(x=>x.id===aid);if(!a)return;
+  const d=prompt("資料日期（這個餘額代表哪一天？）",today());if(!d)return;
+  const val=prompt(a.name+" 餘額",latestAccount(aid)?.balance??"");if(val===null)return;
+  if(val===""||isNaN(Number(val)))return alert("請輸入數字");
+  state.accountSnapshots=state.accountSnapshots.filter(x=>!(x.accountId===aid&&x.dataDate===d));
+  state.accountSnapshots.push({id:uid(),accountId:aid,dataDate:d,balance:Number(val)});
+  finishEdit();
+}
+function renderAccounts(){
+  const tb=document.getElementById("accountTable");
+  tb.innerHTML=state.accounts.map(a=>{
+    const l=latestAccount(a.id);
+    return `<tr><td>${esc(a.name)}</td><td>${l?.dataDate||"—"}</td><td class="num balance-col">${l?money(l.balance):"—"}</td><td><button class="btn small" onclick="editAccount('${a.id}')">${l?"更新餘額":"輸入餘額"}</button></td></tr>`;
+  }).join("")||`<tr><td colspan="4" class="empty">目前沒有帳戶</td></tr>`;
+}
+
+function showCardForm(){document.getElementById("cardForm").style.display="block"}
+function hideCardForm(){document.getElementById("cardForm").style.display="none"}
+function addCard(){
+  const name=document.getElementById("newCardName").value.trim();
+  const limit=Number(document.getElementById("newCardLimit").value);
+  if(!name||isNaN(limit))return alert("請填完整");
+  state.cards.push({id:uid(),name,limit});
+  document.getElementById("newCardName").value="";document.getElementById("newCardLimit").value="";
+  hideCardForm();saveLocal();scheduleSync();
+}
+function editCard(id){
+  const c=state.cards.find(x=>x.id===id);if(!c)return;
+  const v=prompt(c.name+" 新額度",c.limit);if(v===null)return;
+  if(v===""||isNaN(Number(v)))return;
+  c.limit=Number(v);saveLocal();scheduleSync();
+}
+function renderCards(){
+  document.getElementById("cardTable").innerHTML=state.cards.map(c=>
+    `<tr><td>${esc(c.name)}</td><td>${money(c.limit)}</td><td><button class="btn small" onclick="editCard('${c.id}')">修改額度</button></td></tr>`
+  ).join("")||`<tr><td colspan="3" class="empty">目前沒有信用卡資料</td></tr>`;
+}
+
+function showStockForm(){document.getElementById("stockForm").style.display="block"}
+function hideStockForm(){document.getElementById("stockForm").style.display="none"}
+function addStock(){
+  const code=document.getElementById("newStockCode").value.trim().toUpperCase();
+  if(!code)return alert("請輸入股票／ETF代號");
+  if(state.stocks.some(x=>x.code===code))return alert("這支已經存在");
+  state.stocks.push({id:uid(),code,initialInvestment:0,initialShares:0});
+  document.getElementById("newStockCode").value="";
+  hideStockForm();saveLocal();scheduleSync();
+}
+function setupInitialStock(id){
+  const s=state.stocks.find(x=>x.id===id);if(!s)return;
+  const inv=prompt(s.code+" 既有投入金額（以前已經買的）","0");if(inv===null)return;
+  const sh=prompt(s.code+" 既有股數","0");if(sh===null)return;
+  if(isNaN(Number(inv))||isNaN(Number(sh)))return alert("請輸入數字");
+  s.initialInvestment=Number(inv);s.initialShares=Number(sh);saveLocal();scheduleSync();
+}
+function addPurchase(id){
+  const s=state.stocks.find(x=>x.id===id);if(!s)return;
+  const d=prompt("購入日期",today());if(!d)return;
+  const amount=prompt(s.code+" 本次購入金額","");if(amount===null)return;
+  const shares=prompt(s.code+" 本次股數","");if(shares===null)return;
+  if(isNaN(Number(amount))||isNaN(Number(shares)))return alert("請輸入數字");
+  state.purchases.push({id:uid(),stockId:id,dataDate:d,amount:Number(amount),shares:Number(shares)});
+  saveLocal();scheduleSync();openStockDetail(id);
+}
+function addMarketValue(id){
+  const s=state.stocks.find(x=>x.id===id);if(!s)return;
+  const d=prompt("市值資料日期",today());if(!d)return;
+  const v=prompt(s.code+" 目前市值","");if(v===null)return;
+  if(isNaN(Number(v)))return alert("請輸入數字");
+  state.marketSnapshots=state.marketSnapshots.filter(x=>!(x.stockId===id&&x.dataDate===d));
+  state.marketSnapshots.push({id:uid(),stockId:id,dataDate:d,marketValue:Number(v)});
+  finishEdit();openStockDetail(id);
+}
+function renderStocks(){
+  const tb=document.getElementById("stockTable");
+  tb.innerHTML=state.stocks.map(s=>{
+    const i=stockInfo(s);
+    return `<tr>
+      <td><strong>${esc(stockCode(s.code))}</strong></td>
+      <td>${i.shares.toLocaleString("zh-TW")}</td>
+      <td>${money(i.investment)}</td>
+      <td>${money(i.market)}</td>
+      <td>${money(i.ret)}</td>
+      <td>${pct(i.rate)}</td>
+      <td><div class="actions">
+        <button class="btn small" onclick="openStockDetail('${s.id}')">明細</button>
+        <button class="btn small" onclick="addMarketValue('${s.id}')">更新市值</button>
+      </div></td>
+    </tr>`;
+  }).join("")||`<tr><td colspan="7" class="empty">目前沒有股票</td></tr>`;
+}
+function openStockDetail(id){
+  const s=state.stocks.find(x=>x.id===id);if(!s)return;
+  const i=stockInfo(s);
+  const purchases=state.purchases.filter(x=>x.stockId===id).sort((a,b)=>b.dataDate.localeCompare(a.dataDate));
+  const markets=state.marketSnapshots.filter(x=>x.stockId===id).sort((a,b)=>b.dataDate.localeCompare(a.dataDate));
+  document.getElementById("stockDetailCard").style.display="block";
+  document.getElementById("detailTitle").textContent="📈 "+stockCode(s.code)+" 明細";
+  document.getElementById("stockDetail").innerHTML=`
+    <div class="grid summary-grid">
+      <div class="card"><div class="metric-label">累積股數</div><div class="metric">${i.shares.toLocaleString("zh-TW")}</div></div>
+      <div class="card"><div class="metric-label">累積投入</div><div class="metric">${money(i.investment)}</div></div>
+      <div class="card"><div class="metric-label">最新市值</div><div class="metric">${money(i.market)}</div></div>
+      <div class="card"><div class="metric-label">總報酬</div><div class="metric">${money(i.ret)}（${pct(i.rate)}）</div></div>
+    </div>
+    <div class="actions section">
+      <button class="btn primary" onclick="setupInitialStock('${id}')">設定既有持股</button>
+      <button class="btn primary" onclick="addPurchase('${id}')">＋新增購入</button>
+      <button class="btn primary" onclick="addMarketValue('${id}')">＋更新市值</button>
+    </div>
+    <details class="section"><summary>購入紀錄（${purchases.length} 筆）</summary>
+      ${purchases.length?purchases.map(x=>`<div class="history open">${x.dataDate}　${money(x.amount)}　${Number(x.shares).toLocaleString("zh-TW")} 股</div>`).join(""):"<div class='empty'>尚無購入紀錄</div>"}
+    </details>
+    <details class="section"><summary>市值紀錄（${markets.length} 筆）</summary>
+      ${markets.length?markets.map(x=>`<div class="history open">${x.dataDate}　${money(x.marketValue)}</div>`).join(""):"<div class='empty'>尚無市值紀錄</div>"}
+    </details>`;
+  document.getElementById("stockDetailCard").scrollIntoView({behavior:"smooth",block:"start"});
+}
+function closeStockDetail(){document.getElementById("stockDetailCard").style.display="none"}
+
+function setGoal(id,val){
+  const p=Math.min(100,Math.max(0,val/1000000*100));
+  document.getElementById(id).style.width=p+"%";
+  document.getElementById(id).querySelector("span").textContent=p>=100?"🏡":"🐣";
+}
+function goalText(prefix,val){
+  document.getElementById(prefix+"Text").textContent=money(val)+" / $1,000,000";
+  document.getElementById(prefix+"Foot").textContent=val>=1000000?"🎉 已達成 100 萬！":"還差 "+money(1000000-val);
+}
+function renderDashboard(){
+  const cash=cashTotal(),stocks=stockTotal(),total=cash+stocks;
+  document.getElementById("dCash").textContent=money(cash);
+  document.getElementById("dStocks").textContent=money(stocks);
+  document.getElementById("dTotal").textContent=money(total);
+  const prev=state.assetSnapshots.filter(x=>x.total!=null).sort((a,b)=>b.dataDate.localeCompare(a.dataDate))[1];
+  document.getElementById("dChange").textContent=prev?`變化：${money(total-prev.total)}`:"變化：—";
+  const inv=state.stocks.reduce((s,x)=>s+stockInfo(x).investment,0);
+  const ret=stocks-inv;
+  document.getElementById("dReturn").textContent=money(ret);
+  document.getElementById("dReturnRate").textContent="投報率："+(inv?pct(ret/inv*100):"—");
+  setGoal("gCash",cash);setGoal("gStock",stocks);setGoal("gTotal",total);
+  goalText("gCash",cash);goalText("gStock",stocks);goalText("gTotal",total);
+
+  const ss=document.getElementById("stockSummary");
+  ss.innerHTML=state.stocks.map(s=>{const i=stockInfo(s);return `<div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid #f0e7ea"><span><strong>${esc(s.code)}</strong></span><span>${money(i.market)}　<span style="color:#000000">${pct(i.rate)}</span></span></div>`}).join("")||"<div class='empty'>尚無股票</div>";
+
+  const chart=document.getElementById("assetChart");
+  const arr=state.assetSnapshots.slice().sort((a,b)=>a.dataDate.localeCompare(b.dataDate));
+  if(!arr.length){chart.innerHTML="<div class='empty'>目前還沒有歷史資料<br>輸入銀行餘額或更新股票市值後就會開始累積</div>";}
+  else{
+    const max=Math.max(...arr.map(x=>x.total),1);
+    chart.innerHTML=arr.slice(-20).map(x=>`<div class="bar-col"><div class="chart-value">${money(x.total)}</div><div class="chart-bar" style="height:${Math.max(3,x.total/max*160)}px"></div><div class="chart-label">${x.dataDate.slice(5)}</div></div>`).join("");
+  }
+  document.getElementById("updateDate").textContent="最近更新："+(state.lastUpdated?new Date(state.lastUpdated).toLocaleString("zh-TW",{hour12:false}):"—");
+}
+
+function renderAll(){renderAccounts();renderCards();renderStocks();renderDashboard()}
+
+const GAS_URL="https://script.google.com/macros/s/AKfycbyZtjYGaxb4hMU8xWEnRU86vQbPwudNRIuLphzUtP-ObSMTSYuO8qNZGuVhLMhl_B3mYw/exec";
+const PENDING_KEY="ayuMoneyBox_pendingSync_v1";
+
+const TABLE_MAP={
+  accounts:"accounts",
+  accountSnapshots:"accountSnapshots",
+  cards:"cards",
+  stocks:"stocks",
+  purchases:"purchases",
+  marketSnapshots:"marketSnapshots",
+  assetSnapshots:"assetSnapshots"
+};
+
+function getPending(){
+  try{return JSON.parse(localStorage.getItem(PENDING_KEY)||"[]")}catch(e){return []}
+}
+
+function setPending(list){
+  localStorage.setItem(PENDING_KEY,JSON.stringify(list));
+}
+
+function rowKey(table,row){
+  return table+"::"+String(row.id||"");
+}
+
+function queueChanges(changes){
+  if(!changes.length)return;
+  const pending=getPending();
+  const map=new Map(pending.map(x=>[rowKey(x.table,x.row),x]));
+  changes.forEach(x=>map.set(rowKey(x.table,x.row),x));
+  setPending([...map.values()]);
+}
+
+function stateArrays(st){
+  return {
+    accounts:st.accounts||[],
+    accountSnapshots:st.accountSnapshots||[],
+    cards:st.cards||[],
+    stocks:st.stocks||[],
+    purchases:st.purchases||[],
+    marketSnapshots:st.marketSnapshots||[],
+    assetSnapshots:st.assetSnapshots||[]
+  };
+}
+
+function collectChangedRows(before,after){
+  const changes=[];
+  const a=stateArrays(after);
+  const b=stateArrays(before||{});
+  Object.keys(a).forEach(table=>{
+    const oldMap=new Map((b[table]||[]).map(x=>[String(x.id),JSON.stringify(x)]));
+    (a[table]||[]).forEach(row=>{
+      const old=oldMap.get(String(row.id));
+      if(old!==JSON.stringify(row)){
+        changes.push({table,row});
+      }
+    });
+  });
+  return changes;
+}
+
+async function syncToCloudNow(forceAll=false){
+  const status=document.getElementById("syncStatus");
+  status.textContent="🔵 同步中…";
+
+  try{
+    let changes=getPending();
+
+    // 第一次手動同步時，把目前本機資料完整送一次。
+    if(forceAll || !localStorage.getItem("ayuMoneyBox_cloudInitialized_v1")){
+      const a=stateArrays(state);
+      changes=[];
+      Object.keys(a).forEach(table=>{
+        a[table].forEach(row=>changes.push({table,row}));
+      });
+    }
+
+    if(!changes.length){
+      status.textContent="🔵 已同步";
+      return;
+    }
+
+    const response=await fetch(GAS_URL,{
+      method:"POST",
+      headers:{"Content-Type":"text/plain;charset=utf-8"},
+      body:JSON.stringify({
+        action:"sync",
+        changes:changes
+      })
+    });
+
+    if(!response.ok){
+      throw new Error("HTTP "+response.status);
+    }
+
+    const result=await response.json();
+
+    // ★ 最重要：不能只看 HTTP 200，一定檢查 GAS result。
+    if(!result || result.result!=="success"){
+      throw new Error(result?.message || "Google Apps Script 回傳失敗");
+    }
+
+    localStorage.removeItem(PENDING_KEY);
+    localStorage.setItem("ayuMoneyBox_cloudInitialized_v1","1");
+    status.textContent="🔵 已同步";
+  }catch(err){
+    // 同步失敗時絕不清掉待同步資料，本機資料仍然安全。
+    status.textContent="⚠️ 同步失敗，資料已保存在本機";
+    console.error("阿魚小金庫同步失敗：",err);
+  }
+}
+
+function scheduleSync(){
+  clearTimeout(window.syncTimer);
+  window.syncTimer=setTimeout(()=>syncToCloudNow(false),900);
+}
+
+document.getElementById("syncBtn").onclick=()=>syncToCloudNow(true);
+
+async function loadFromCloud(){
+  const status=document.getElementById("syncStatus");
+  status.textContent="🔵 讀取雲端中…";
+  try{
+    const response=await fetch(GAS_URL+"?action=load",{method:"GET"});
+    if(!response.ok)throw new Error("HTTP "+response.status);
+    const result=await response.json();
+    if(!result || result.result!=="success"){
+      throw new Error(result?.message || "雲端讀取失敗");
+    }
+    return result.data;
+  }catch(err){
+    status.textContent="⚠️ 雲端讀取失敗，本機資料未變動";
+    console.error("阿魚小金庫雲端讀取失敗：",err);
+    return null;
+  }
+}
+
+
+function mergeCloudIntoLocal(cloud){
+  if(!cloud)return;
+
+  const tables=[
+    "accounts",
+    "accountSnapshots",
+    "cards",
+    "stocks",
+    "purchases",
+    "marketSnapshots",
+    "assetSnapshots"
+  ];
+
+  tables.forEach(table=>{
+    const local=state[table]||[];
+    const remote=Array.isArray(cloud[table])?cloud[table]:[];
+    const map=new Map(local.map(row=>[String(row.id),row]));
+
+    remote.forEach(row=>{
+      map.set(String(row.id),row);
+    });
+
+    state[table]=Array.from(map.values());
+  });
+
+  normalizeCloudDatesAndCodes();
+  localStorage.setItem(KEY,JSON.stringify(state));
+  renderAll();
+}
+
+async function initializeCloud(){
+  // 有尚未送出的本機變更時，先上傳，再讀取雲端，避免覆蓋新資料。
+  if(getPending().length){
+    await syncToCloudNow(false);
+  }
+
+  const cloud=await loadFromCloud();
+
+  if(cloud){
+    mergeCloudIntoLocal(cloud);
+    document.getElementById("syncStatus").textContent="🔵 已同步";
+  }
+}
+
+renderAll();
+initializeCloud();
+</script>
+</body>
+</html>
