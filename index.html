@@ -1123,11 +1123,16 @@ async function syncToCloudNow(forceAll=false){
 
     // 第一次手動同步時，把目前本機資料完整送一次。
     if(forceAll || !localStorage.getItem("ayuMoneyBox_cloudInitialized_v1")){
+      // 完整同步時也不能丟掉「刪除」指令；否則 Google 試算表裡的舊重複列會永遠留著。
+      const pendingDeletes=changes.filter(x=>x && x.delete);
       const a=stateArrays(state);
-      changes=[];
+      const full=[];
       Object.keys(a).forEach(table=>{
-        a[table].forEach(row=>changes.push({table,row}));
+        a[table].forEach(row=>full.push({table,row}));
       });
+      const map=new Map(full.map(x=>[changeKey(x),x]));
+      pendingDeletes.forEach(x=>map.set(changeKey(x),x));
+      changes=[...map.values()];
     }
 
     if(!changes.length){
@@ -1195,9 +1200,7 @@ function mergeCloudIntoLocal(cloud){
   if(!cloud)return;
 
   // 主資料（帳戶／股票）不要只靠 id 合併。
-  // 清掉瀏覽器資料後，預設資料會重新產生新的 id；
-  // 若雲端還留著舊 id，就會被誤認成兩筆相同名稱。
-  // 這裡改用「名稱／代號」判斷，避免銀行與股票重複。
+  // 股票尤其要處理「同一代號多個主資料」：保留一筆，其餘主資料要真的送到 GAS 刪掉。
   function mergeMaster(localRows,remoteRows,keyFn){
     const map=new Map();
     (localRows||[]).forEach(row=>map.set(keyFn(row),row));
@@ -1208,6 +1211,41 @@ function mergeCloudIntoLocal(cloud){
     return Array.from(map.values());
   }
 
+  const remoteStocks=Array.isArray(cloud.stocks)?cloud.stocks:[];
+  const localStocks=Array.isArray(state.stocks)?state.stocks:[];
+  const localByCode=new Map(localStocks.map(x=>[stockCode(x.code),x]));
+  const stockIdRemap=new Map();
+  const duplicateRemoteStockIds=[];
+
+  // 先決定每個代號真正要保留的主資料。
+  const remoteGroups=new Map();
+  remoteStocks.forEach(stock=>{
+    const code=stockCode(stock.code);
+    if(!remoteGroups.has(code))remoteGroups.set(code,[]);
+    remoteGroups.get(code).push(stock);
+  });
+
+  remoteGroups.forEach((group,code)=>{
+    let keeper=localByCode.get(code);
+    if(!keeper){
+      const score=stock=>{
+        const childCount=
+          (cloud.purchases||[]).filter(x=>String(x.stockId)===String(stock.id)).length+
+          (cloud.sales||[]).filter(x=>String(x.stockId)===String(stock.id)).length+
+          (cloud.marketSnapshots||[]).filter(x=>String(x.stockId)===String(stock.id)).length;
+        return ((Number(stock.initialInvestment)||0)>0?1000000000:0)
+          +((Number(stock.initialShares)||0)>0?100000000:0)+childCount;
+      };
+      keeper=group.slice().sort((a,b)=>score(b)-score(a))[0];
+    }
+    group.forEach(stock=>{
+      if(String(stock.id)!==String(keeper.id)){
+        stockIdRemap.set(String(stock.id),String(keeper.id));
+        duplicateRemoteStockIds.push(String(stock.id));
+      }
+    });
+  });
+
   state.accounts=mergeMaster(
     state.accounts,
     Array.isArray(cloud.accounts)?cloud.accounts:[],
@@ -1216,11 +1254,11 @@ function mergeCloudIntoLocal(cloud){
 
   state.stocks=mergeMaster(
     state.stocks,
-    Array.isArray(cloud.stocks)?cloud.stocks:[],
+    remoteStocks,
     row=>stockCode(row.code)
   );
 
-  // 其他資料仍然用穩定 id 合併，避免同一筆紀錄被重複新增。
+  // 其他資料用穩定 id 合併；若雲端的歷史紀錄指向被淘汰的重複股票，改指向保留的股票。
   [
     "accountSnapshots",
     "cards",
@@ -1232,12 +1270,23 @@ function mergeCloudIntoLocal(cloud){
     const local=state[table]||[];
     const remote=Array.isArray(cloud[table])?cloud[table]:[];
     const map=new Map(local.map(row=>[String(row.id),row]));
-    remote.forEach(row=>map.set(String(row.id),row));
+    remote.forEach(row=>{
+      const copy={...row};
+      if((table==="purchases"||table==="sales"||table==="marketSnapshots") && copy.stockId!=null){
+        copy.stockId=stockIdRemap.get(String(copy.stockId)) || copy.stockId;
+      }
+      map.set(String(copy.id),copy);
+    });
     state[table]=Array.from(map.values());
   });
 
+  // 這裡把雲端重複股票主資料的 ID 排進刪除佇列，讓 GAS 真正刪除試算表的那些列。
+  const deleteChanges=duplicateRemoteStockIds.map(id=>({table:"stocks",id,delete:true}));
+
   normalizeCloudDatesAndCodes();
   dedupeStocksByCode();
+
+  if(deleteChanges.length)queueChanges(deleteChanges);
 
   // 舊的雲端測試資料如果同一天有多筆，畫面只保留最後一筆。
   const assetByDate=new Map();
@@ -1250,6 +1299,9 @@ function mergeCloudIntoLocal(cloud){
 
   localStorage.setItem(KEY,JSON.stringify(state));
   renderAll();
+
+  // 重複主資料已經進入刪除佇列，立刻送一次；失敗則保留 pending，下次再送。
+  if(deleteChanges.length)scheduleSync();
 }
 
 async function initializeCloud(){
@@ -1272,10 +1324,20 @@ async function initializeCloud(){
   }
 }
 
-renderAll();
-// 啟動時若還沒有完整名稱快取，就背景更新一次；之後直接使用本機快取。
-if(localStorage.getItem(STOCK_NAME_CACHE_READY_KEY)!=="1")loadStockNames();
-initializeCloud();
+try{
+  renderAll();
+}catch(err){
+  console.error("阿魚小金庫畫面初始化失敗：",err);
+  const status=document.getElementById("syncStatus");
+  if(status)status.textContent="⚠️ 畫面初始化失敗，請重新整理";
+}
+// 股票名稱查詢只在背景執行，失敗不會影響主畫面。
+if(localStorage.getItem(STOCK_NAME_CACHE_READY_KEY)!=="1"){
+  loadStockNames().catch(err=>console.warn("股票名稱背景更新失敗：",err));
+}
+initializeCloud().catch(err=>{
+  console.error("阿魚小金庫雲端初始化失敗：",err);
+});
 </script>
 </body>
 </html>
