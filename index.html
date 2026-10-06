@@ -978,15 +978,16 @@ function setPending(list){
   localStorage.setItem(PENDING_KEY,JSON.stringify(list));
 }
 
-function rowKey(table,row){
-  return table+"::"+String(row.id||"");
+function changeKey(item){
+  const id=item?.delete ? item.id : item?.row?.id;
+  return item.table+"::"+String(id||"");
 }
 
 function queueChanges(changes){
   if(!changes.length)return;
   const pending=getPending();
-  const map=new Map(pending.map(x=>[rowKey(x.table,x.row),x]));
-  changes.forEach(x=>map.set(rowKey(x.table,x.row),x));
+  const map=new Map(pending.map(x=>[changeKey(x),x]));
+  changes.forEach(x=>map.set(changeKey(x),x));
   setPending([...map.values()]);
 }
 
