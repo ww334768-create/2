@@ -669,6 +669,70 @@ function setupInitialStock(id){
   if(isNaN(Number(inv))||isNaN(Number(sh)))return alert("請輸入數字");
   s.initialInvestment=Number(inv);s.initialShares=Number(sh);saveLocal();scheduleSync();
 }
+function recordPromptNumber(label,current){
+  const v=prompt(label,current==null?"":current);
+  if(v===null)return null;
+  if(v===""||!Number.isFinite(Number(v)))return undefined;
+  return Number(v);
+}
+function saveRecordAndRefresh(stockId){
+  saveLocal();
+  scheduleSync();
+  openStockDetail(stockId);
+}
+function editPurchase(id){
+  const r=state.purchases.find(x=>x.id===id);if(!r)return;
+  const d=prompt("購入日期",r.dataDate);if(d===null)return;
+  const amount=recordPromptNumber("購入金額",r.amount);if(amount===undefined)return alert("請輸入正確金額");if(amount===null)return;
+  const shares=recordPromptNumber("購入股數",r.shares);if(shares===undefined)return alert("請輸入正確股數");if(shares===null)return;
+  if(amount<0||shares<=0)return alert("金額不能小於 0，股數需大於 0");
+  r.dataDate=d;r.amount=amount;r.shares=shares;
+  saveRecordAndRefresh(r.stockId);
+}
+function deletePurchase(id){
+  const r=state.purchases.find(x=>x.id===id);if(!r)return;
+  if(!confirm(`確定要刪除這筆購入紀錄嗎？\n${r.dataDate}　${money(r.amount)}　${Number(r.shares).toLocaleString("zh-TW")} 股`))return;
+  state.purchases=state.purchases.filter(x=>x.id!==id);
+  saveRecordAndRefresh(r.stockId);
+}
+function editSale(id){
+  const r=(state.sales||[]).find(x=>x.id===id);if(!r)return;
+  const stock=state.stocks.find(x=>x.id===r.stockId);if(!stock)return;
+  const d=prompt("賣出日期",r.dataDate);if(d===null)return;
+  const shares=recordPromptNumber("賣出股數",r.shares);if(shares===undefined)return alert("請輸入正確股數");if(shares===null)return;
+  const amount=recordPromptNumber("賣出實收金額",r.amount);if(amount===undefined)return alert("請輸入正確金額");if(amount===null)return;
+  if(shares<=0||amount<0)return alert("股數需大於 0，金額不能小於 0");
+  const others=(state.sales||[]).filter(x=>x.id!==id&&x.stockId===r.stockId);
+  const otherSold=others.reduce((sum,x)=>sum+Number(x.shares||0),0);
+  const purchases=state.purchases.filter(x=>x.stockId===r.stockId);
+  const acquired=(Number(stock.initialShares)||0)+purchases.reduce((sum,x)=>sum+Number(x.shares||0),0);
+  if(otherSold+shares>acquired+1e-8)return alert("修改後的賣出股數會超過目前可用持股");
+  r.dataDate=d;r.shares=shares;r.amount=amount;
+  saveRecordAndRefresh(r.stockId);
+}
+function deleteSale(id){
+  const r=(state.sales||[]).find(x=>x.id===id);if(!r)return;
+  if(!confirm(`確定要刪除這筆賣出紀錄嗎？\n${r.dataDate}　${money(r.amount)}　${Number(r.shares).toLocaleString("zh-TW")} 股`))return;
+  state.sales=state.sales.filter(x=>x.id!==id);
+  saveRecordAndRefresh(r.stockId);
+}
+function editMarketValue(id){
+  const r=state.marketSnapshots.find(x=>x.id===id);if(!r)return;
+  const d=prompt("市值資料日期",r.dataDate);if(d===null)return;
+  const v=recordPromptNumber("目前市值",r.marketValue);if(v===undefined)return alert("請輸入正確金額");if(v===null)return;
+  if(v<0)return alert("市值不能小於 0");
+  r.dataDate=d;r.marketValue=v;
+  finishEdit();
+  openStockDetail(r.stockId);
+}
+function deleteMarketValue(id){
+  const r=state.marketSnapshots.find(x=>x.id===id);if(!r)return;
+  if(!confirm(`確定要刪除這筆市值紀錄嗎？\n${r.dataDate}　${money(r.marketValue)}`))return;
+  state.marketSnapshots=state.marketSnapshots.filter(x=>x.id!==id);
+  finishEdit();
+  openStockDetail(r.stockId);
+}
+
 function addPurchase(id){
   const s=state.stocks.find(x=>x.id===id);if(!s)return;
   const d=prompt("購入日期",today());if(!d)return;
@@ -772,13 +836,13 @@ function openStockDetail(id){
       <button class="btn primary" onclick="addMarketValue('${id}')">＋更新市值</button>
     </div>
     <details class="section"><summary>購入紀錄（${purchases.length} 筆）</summary>
-      ${purchases.length?purchases.map(x=>`<div class="history open">${x.dataDate}　${money(x.amount)}　${Number(x.shares).toLocaleString("zh-TW")} 股</div>`).join(""):"<div class='empty'>尚無購入紀錄</div>"}
+      ${purchases.length?purchases.map(x=>`<div class="history open"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap"><span>${x.dataDate}　${money(x.amount)}　${Number(x.shares).toLocaleString("zh-TW")} 股</span><span class="actions"><button class="btn small" onclick="editPurchase('${x.id}')">✏️ 編輯</button><button class="btn small" onclick="deletePurchase('${x.id}')">🗑️ 刪除</button></span></div></div>`).join(""):"<div class='empty'>尚無購入紀錄</div>"}
     </details>
     <details class="section"><summary>賣出紀錄（${sales.length} 筆）</summary>
-      ${sales.length?sales.map(x=>`<div class="history open">${x.dataDate}　${money(x.amount)}　${Number(x.shares).toLocaleString("zh-TW")} 股</div>`).join(""):"<div class='empty'>尚無賣出紀錄</div>"}
+      ${sales.length?sales.map(x=>`<div class="history open"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap"><span>${x.dataDate}　${money(x.amount)}　${Number(x.shares).toLocaleString("zh-TW")} 股</span><span class="actions"><button class="btn small" onclick="editSale('${x.id}')">✏️ 編輯</button><button class="btn small" onclick="deleteSale('${x.id}')">🗑️ 刪除</button></span></div></div>`).join(""):"<div class='empty'>尚無賣出紀錄</div>"}
     </details>
     <details class="section"><summary>市值紀錄（${markets.length} 筆）</summary>
-      ${markets.length?markets.map(x=>`<div class="history open">${x.dataDate}　${money(x.marketValue)}</div>`).join(""):"<div class='empty'>尚無市值紀錄</div>"}
+      ${markets.length?markets.map(x=>`<div class="history open"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap"><span>${x.dataDate}　${money(x.marketValue)}</span><span class="actions"><button class="btn small" onclick="editMarketValue('${x.id}')">✏️ 編輯</button><button class="btn small" onclick="deleteMarketValue('${x.id}')">🗑️ 刪除</button></span></div></div>`).join(""):"<div class='empty'>尚無市值紀錄</div>"}
     </details>`;
   document.getElementById("stockDetailCard").scrollIntoView({behavior:"smooth",block:"start"});
 }
@@ -944,11 +1008,17 @@ function collectChangedRows(before,after){
   const a=stateArrays(after);
   const b=stateArrays(before||{});
   Object.keys(a).forEach(table=>{
-    const oldMap=new Map((b[table]||[]).map(x=>[String(x.id),JSON.stringify(x)]));
+    const oldMap=new Map((b[table]||[]).map(x=>[String(x.id),x]));
+    const newMap=new Map((a[table]||[]).map(x=>[String(x.id),x]));
     (a[table]||[]).forEach(row=>{
       const old=oldMap.get(String(row.id));
-      if(old!==JSON.stringify(row)){
+      if(!old || JSON.stringify(old)!==JSON.stringify(row)){
         changes.push({table,row});
+      }
+    });
+    (b[table]||[]).forEach(oldRow=>{
+      if(!newMap.has(String(oldRow.id))){
+        changes.push({table,id:String(oldRow.id),delete:true});
       }
     });
   });
