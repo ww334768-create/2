@@ -205,7 +205,7 @@ table td.balance-col{
         <tbody id="accountTable"></tbody>
       </table>
     </div>
-    <div class="metric-sub" style="margin-top:8px">💡 銀行餘額用「萬元」輸入：例如輸入 53 = $530,000；53.5 = $535,000。</div>
+    <div class="metric-sub" style="margin-top:8px">💡 銀行餘額請直接輸入實際金額，例如 530000 = $530,000。</div>
   </div>
 
   <div class="card section">
@@ -446,10 +446,9 @@ function editAccount(aid){
   const a=state.accounts.find(x=>x.id===aid);if(!a)return;
   const d=prompt("資料日期（這個餘額代表哪一天？）",today());if(!d)return;
   const current=latestAccount(aid)?.balance;
-  const currentWan=current!=null?(Number(current)/10000):"";
-  const val=prompt(a.name+" 餘額（萬元）\n例如 53 = $530,000",currentWan);if(val===null)return;
+  const val=prompt(a.name+" 餘額（元）\n例如 530000 = $530,000",current!=null?current:"");if(val===null)return;
   if(val===""||isNaN(Number(val))||Number(val)<0)return alert("請輸入 0 以上的數字");
-  const balance=Math.round(Number(val)*10000);
+  const balance=Number(val);
   state.accountSnapshots=state.accountSnapshots.filter(x=>!(x.accountId===aid&&x.dataDate===d));
   state.accountSnapshots.push({id:uid(),accountId:aid,dataDate:d,balance});
   finishEdit();
