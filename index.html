@@ -163,6 +163,7 @@ table td.balance-col{
   <button class="nav-btn active" data-page="dashboard">🏠 儀表板</button>
   <button class="nav-btn" data-page="assets">🏦 資產</button>
   <button class="nav-btn" data-page="stocks">📈 股票</button>
+  <button class="nav-btn" data-page="salary">💰 薪資</button>
 </nav>
 
 <main>
@@ -281,6 +282,75 @@ table td.balance-col{
     <div id="stockDetail"></div>
   </div>
 </section>
+
+<section id="salary" class="page">
+  <div class="card">
+    <div class="section-head">
+      <h2>💰 薪資記錄</h2>
+      <div class="form-row">
+        <select id="salaryYear" onchange="renderSalary()"></select>
+        <button class="btn primary" onclick="showSalaryForm()">＋新增紀錄</button>
+      </div>
+    </div>
+
+    <div id="salaryForm" style="display:none" class="section">
+      <div class="form-row">
+        <input id="salaryDate" type="date">
+        <select id="salaryType">
+          <option value="薪資">💵 薪資</option>
+          <option value="獎金">🎁 獎金</option>
+          <option value="禮券">🎫 禮券</option>
+          <option value="其他">💰 其他</option>
+        </select>
+        <input id="salaryAmount" type="number" step="1" min="0" placeholder="金額">
+        <input id="salaryNote" placeholder="備註（可不填）">
+        <button class="btn primary" onclick="addSalaryRecord()">儲存</button>
+        <button class="btn" onclick="hideSalaryForm()">取消</button>
+      </div>
+    </div>
+
+    <div class="grid summary-grid section">
+      <div class="card">
+        <div class="metric-label">💰 全年收入</div>
+        <div class="metric" id="salaryTotal">$0</div>
+        <div class="metric-sub">不列入總資產</div>
+      </div>
+      <div class="card">
+        <div class="metric-label">💵 薪資</div>
+        <div class="metric" id="salaryWages">$0</div>
+      </div>
+      <div class="card">
+        <div class="metric-label">🎁 獎金</div>
+        <div class="metric" id="salaryBonus">$0</div>
+      </div>
+      <div class="card">
+        <div class="metric-label">🎫 禮券</div>
+        <div class="metric" id="salaryGift">$0</div>
+      </div>
+    </div>
+
+    <div class="card section">
+      <div class="section-head">
+        <h2>📋 年度紀錄</h2>
+        <span class="metric-sub">共 <span id="salaryCount">0</span> 筆</span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>日期</th>
+              <th>類別</th>
+              <th class="balance-col">金額</th>
+              <th>備註</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody id="salaryTable"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
 </main>
 </div>
 
@@ -368,6 +438,7 @@ function loadState(){
       s.sales ||= [];
       s.marketSnapshots ||= [];
       s.assetSnapshots ||= [];
+      s.salaryRecords ||= [];
       return s;
     }
   }catch(e){}
@@ -380,6 +451,7 @@ function loadState(){
     sales:[],
     marketSnapshots:[],
     assetSnapshots:[],
+    salaryRecords:[],
     lastUpdated:null
   };
 }
@@ -477,6 +549,11 @@ function normalizeCloudDatesAndCodes(){
   }));
 
   state.assetSnapshots=(state.assetSnapshots||[]).map(x=>({
+    ...x,
+    dataDate:formatDataDate(x.dataDate)
+  }));
+
+  state.salaryRecords=(state.salaryRecords||[]).map(x=>({
     ...x,
     dataDate:formatDataDate(x.dataDate)
   }));
@@ -875,6 +952,146 @@ function openStockDetail(id){
 }
 function closeStockDetail(){document.getElementById("stockDetailCard").style.display="none"}
 
+function showSalaryForm(){
+  document.getElementById("salaryForm").style.display="block";
+  document.getElementById("salaryDate").value=today();
+  document.getElementById("salaryType").value="薪資";
+  document.getElementById("salaryAmount").value="";
+  document.getElementById("salaryNote").value="";
+}
+function hideSalaryForm(){document.getElementById("salaryForm").style.display="none"}
+function salaryYearOf(date){return String(date||"").slice(0,4)}
+function salaryYears(){
+  const years=new Set([String(new Date().getFullYear())]);
+  (state.salaryRecords||[]).forEach(x=>{
+    const y=salaryYearOf(formatDataDate(x.dataDate));
+    if(/^\d{4}$/.test(y))years.add(y);
+  });
+  return [...years].sort((a,b)=>Number(b)-Number(a));
+}
+function renderSalaryYearSelect(){
+  const select=document.getElementById("salaryYear");
+  if(!select)return;
+  const old=select.value;
+  const years=salaryYears();
+  select.innerHTML=years.map(y=>`<option value="${y}">${y} 年</option>`).join("");
+  if(years.includes(old))select.value=old;
+  else select.value=String(new Date().getFullYear());
+}
+function salaryRecordsForCurrentYear(){
+  const year=document.getElementById("salaryYear")?.value||String(new Date().getFullYear());
+  return (state.salaryRecords||[])
+    .filter(x=>salaryYearOf(formatDataDate(x.dataDate))===year)
+    .sort((a,b)=>formatDataDate(b.dataDate).localeCompare(formatDataDate(a.dataDate)));
+}
+function salaryTotalByType(type){
+  return salaryRecordsForCurrentYear()
+    .filter(x=>x.type===type)
+    .reduce((sum,x)=>sum+(Number(x.amount)||0),0);
+}
+function addSalaryRecord(){
+  const dataDate=document.getElementById("salaryDate").value;
+  const type=document.getElementById("salaryType").value;
+  const amount=Number(document.getElementById("salaryAmount").value);
+  const note=document.getElementById("salaryNote").value.trim();
+
+  if(!dataDate)return alert("請選擇日期");
+  if(!["薪資","獎金","禮券","其他"].includes(type))return alert("請選擇正確類別");
+  if(!Number.isFinite(amount)||amount<0)return alert("請輸入 0 以上的金額");
+
+  state.salaryRecords ||= [];
+  state.salaryRecords.push({
+    id:uid(),
+    dataDate,
+    type,
+    amount,
+    note
+  });
+
+  hideSalaryForm();
+  saveLocal();
+  scheduleSync();
+
+  const year=salaryYearOf(dataDate);
+  renderSalaryYearSelect();
+  document.getElementById("salaryYear").value=year;
+  renderSalary();
+}
+function editSalaryRecord(id){
+  const r=(state.salaryRecords||[]).find(x=>x.id===id);
+  if(!r)return;
+
+  const d=prompt("收入日期",r.dataDate);
+  if(d===null)return;
+
+  const type=prompt("類別：薪資／獎金／禮券／其他",r.type);
+  if(type===null)return;
+  if(!["薪資","獎金","禮券","其他"].includes(type.trim()))return alert("類別只能是：薪資、獎金、禮券、其他");
+
+  const amount=prompt("金額",r.amount);
+  if(amount===null)return;
+  if(amount===""||!Number.isFinite(Number(amount))||Number(amount)<0)return alert("請輸入 0 以上的金額");
+
+  const note=prompt("備註",r.note||"");
+  if(note===null)return;
+
+  r.dataDate=d;
+  r.type=type.trim();
+  r.amount=Number(amount);
+  r.note=note.trim();
+
+  saveLocal();
+  scheduleSync();
+
+  renderSalaryYearSelect();
+  const year=salaryYearOf(d);
+  if(salaryYears().includes(year))document.getElementById("salaryYear").value=year;
+  renderSalary();
+}
+function deleteSalaryRecord(id){
+  const r=(state.salaryRecords||[]).find(x=>x.id===id);
+  if(!r)return;
+  if(!confirm(`確定要刪除這筆薪資紀錄嗎？\n${r.dataDate}　${r.type}　${money(r.amount)}`))return;
+
+  state.salaryRecords=state.salaryRecords.filter(x=>x.id!==id);
+  saveLocal();
+  scheduleSync();
+  renderSalaryYearSelect();
+  renderSalary();
+}
+function salaryTypeBadge(type){
+  const icon={薪資:"💵",獎金:"🎁",禮券:"🎫",其他:"💰"}[type]||"💰";
+  return `${icon} ${esc(type)}`;
+}
+function renderSalary(){
+  renderSalaryYearSelect();
+
+  const rows=salaryRecordsForCurrentYear();
+  const total=rows.reduce((sum,x)=>sum+(Number(x.amount)||0),0);
+
+  document.getElementById("salaryTotal").textContent=money(total);
+  document.getElementById("salaryWages").textContent=money(rows.filter(x=>x.type==="薪資").reduce((s,x)=>s+(Number(x.amount)||0),0));
+  document.getElementById("salaryBonus").textContent=money(rows.filter(x=>x.type==="獎金").reduce((s,x)=>s+(Number(x.amount)||0),0));
+  document.getElementById("salaryGift").textContent=money(rows.filter(x=>x.type==="禮券").reduce((s,x)=>s+(Number(x.amount)||0),0));
+  document.getElementById("salaryCount").textContent=rows.length;
+
+  const tb=document.getElementById("salaryTable");
+  tb.innerHTML=rows.map(x=>`
+    <tr>
+      <td>${esc(formatDataDate(x.dataDate))}</td>
+      <td>${salaryTypeBadge(x.type)}</td>
+      <td class="num balance-col">${money(x.amount)}</td>
+      <td>${esc(x.note||"")||"—"}</td>
+      <td>
+        <div class="actions">
+          <button class="btn small" onclick="editSalaryRecord('${x.id}')">✏️ 編輯</button>
+          <button class="btn small" onclick="deleteSalaryRecord('${x.id}')">🗑️ 刪除</button>
+        </div>
+      </td>
+    </tr>
+  `).join("")||`<tr><td colspan="5" class="empty">這一年還沒有薪資紀錄</td></tr>`;
+}
+
 function setGoal(id,val){
   const p=Math.min(100,Math.max(0,val/1000000*100));
   document.getElementById(id).style.width=p+"%";
@@ -925,7 +1142,7 @@ function renderDashboard(){
   document.getElementById("updateDate").textContent="最近更新："+(state.lastUpdated?new Date(state.lastUpdated).toLocaleString("zh-TW",{hour12:false}):"—");
 }
 
-function renderAll(){renderAccounts();renderCards();renderStocks();renderDashboard()}
+function renderAll(){renderAccounts();renderCards();renderStocks();renderDashboard();renderSalary()}
 
 function exportBackup(){
   const backup={
@@ -966,6 +1183,7 @@ function importBackup(file){
         sales:data.sales||[],
         marketSnapshots:data.marketSnapshots||[],
         assetSnapshots:data.assetSnapshots||[],
+        salaryRecords:data.salaryRecords||[],
         lastUpdated:data.lastUpdated||new Date().toISOString()
       };
       localStorage.removeItem(PENDING_KEY);
@@ -994,7 +1212,8 @@ const TABLE_MAP={
   purchases:"purchases",
   sales:"sales",
   marketSnapshots:"marketSnapshots",
-  assetSnapshots:"assetSnapshots"
+  assetSnapshots:"assetSnapshots",
+  salaryRecords:"salaryRecords"
 };
 
 function getPending(){
@@ -1027,7 +1246,8 @@ function stateArrays(st){
     purchases:st.purchases||[],
     sales:st.sales||[],
     marketSnapshots:st.marketSnapshots||[],
-    assetSnapshots:st.assetSnapshots||[]
+    assetSnapshots:st.assetSnapshots||[],
+    salaryRecords:st.salaryRecords||[]
   };
 }
 
@@ -1264,6 +1484,7 @@ function mergeCloudIntoLocal(cloud){
   state.sales=remapStockRows(cloud.sales);
   state.marketSnapshots=remapStockRows(cloud.marketSnapshots);
   state.assetSnapshots=Array.isArray(cloud.assetSnapshots)?cloud.assetSnapshots:[];
+  state.salaryRecords=Array.isArray(cloud.salaryRecords)?cloud.salaryRecords:[];
 
   normalizeCloudDatesAndCodes();
 
