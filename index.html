@@ -416,9 +416,11 @@ async function ensureStockName(code){
   return stockName(c)||"";
 }
 function stockSortKey(code){
-  // 一律使用正規化後的完整股票代號排序，不再把預設 ETF 分組。
-  // numeric:true 讓 006208 正確排在 00878 前面。
-  return stockCode(code);
+  // 固定依照指定的 ETF／股票順序，避免 numeric:true 將 006208 排到 00878 後面。
+  const c=stockCode(code);
+  const preferred=["0050","0052","0056","006208","00878","00919","009816","2317","2890"];
+  const index=preferred.indexOf(c);
+  return [index===-1?preferred.length:index,c];
 }
 
 
@@ -885,7 +887,7 @@ function renderStocks(){
   const rows=[...(state.stocks||[])].sort((a,b)=>{
     if(stockSort.key==="code"){
       const ak=stockSortKey(a.code),bk=stockSortKey(b.code);
-      return ak.localeCompare(bk,"zh-TW",{numeric:true})*stockSort.dir;
+      return (ak[0]-bk[0]||ak[1].localeCompare(bk[1],"zh-TW"))*stockSort.dir;
     }
     const ai=stockInfo(a), bi=stockInfo(b);
     const av=Number(ai[stockSort.key]??0), bv=Number(bi[stockSort.key]??0);
@@ -1123,7 +1125,7 @@ function renderDashboard(){
   goalText("gCash",cash);goalText("gStock",stocks);goalText("gTotal",total);
 
   const ss=document.getElementById("stockSummary");
-  ss.innerHTML=[...(state.stocks||[])].sort((a,b)=>{const ak=stockSortKey(a.code),bk=stockSortKey(b.code);return ak[0]-bk[0]||ak[1].localeCompare(bk[1],"zh-TW",{numeric:true});}).map(s=>{const i=stockInfo(s);return `<div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid #e3dfeb"><span><strong>${esc(stockLabel(s.code))}</strong></span><span>${money(i.market)}　<span style="color:#000000">${pct(i.rate)}</span></span></div>`}).join("")||"<div class='empty'>尚無股票</div>";
+  ss.innerHTML=[...(state.stocks||[])].sort((a,b)=>{const ak=stockSortKey(a.code),bk=stockSortKey(b.code);return ak[0]-bk[0]||ak[1].localeCompare(bk[1],"zh-TW");}).map(s=>{const i=stockInfo(s);return `<div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid #e3dfeb"><span><strong>${esc(stockLabel(s.code))}</strong></span><span>${money(i.market)}　<span style="color:#000000">${pct(i.rate)}</span></span></div>`}).join("")||"<div class='empty'>尚無股票</div>";
 
   const chart=document.getElementById("assetChart");
   const meta=document.getElementById("assetChartMeta");
