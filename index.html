@@ -416,9 +416,9 @@ async function ensureStockName(code){
   return stockName(c)||"";
 }
 function stockSortKey(code){
-  const c=stockCode(code);
-  const isDefaultETF=DEFAULT_STOCKS.includes(c);
-  return [isDefaultETF?0:1,c];
+  // 一律使用正規化後的完整股票代號排序，不再把預設 ETF 分組。
+  // numeric:true 讓 006208 正確排在 00878 前面。
+  return stockCode(code);
 }
 
 
@@ -884,7 +884,8 @@ function renderStocks(){
   const tb=document.getElementById("stockTable");
   const rows=[...(state.stocks||[])].sort((a,b)=>{
     if(stockSort.key==="code"){
-      const ak=stockSortKey(a.code),bk=stockSortKey(b.code); return ((ak[0]-bk[0]) || ak[1].localeCompare(bk[1],"zh-TW",{numeric:true}))*stockSort.dir;
+      const ak=stockSortKey(a.code),bk=stockSortKey(b.code);
+      return ak.localeCompare(bk,"zh-TW",{numeric:true})*stockSort.dir;
     }
     const ai=stockInfo(a), bi=stockInfo(b);
     const av=Number(ai[stockSort.key]??0), bv=Number(bi[stockSort.key]??0);
