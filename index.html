@@ -594,6 +594,28 @@ function stockCode(code){
   return known[v] || v;  
 }  
   
+// 薪資備註：像「2026/08」這類年月要當文字保存，避免 Google Sheets 自動轉成日期。
+function salaryNoteForStorage(value){
+  const note=String(value??"").trim();
+  if(/^\d{4}\/\d{1,2}$/.test(note) && !note.startsWith("'")) return "'"+note;
+  return note;
+}
+function formatSalaryNote(value){
+  let note=String(value??"").trim();
+  // 舊資料若已被 Google Sheets 轉成 ISO 日期，顯示回台灣時區的 YYYY/MM。
+  if(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$/.test(note)){
+    const d=new Date(note);
+    if(!Number.isNaN(d.getTime())){
+      const parts=new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Taipei",year:"numeric",month:"2-digit"}).formatToParts(d);
+      const obj={}; parts.forEach(x=>{if(x.type!=="literal")obj[x.type]=x.value});
+      if(obj.year&&obj.month) return `${obj.year}/${obj.month}`;
+    }
+  }
+  // 本機暫存中用前置單引號保護的年月，畫面不顯示單引號。
+  if(/^'\d{4}\/\d{1,2}$/.test(note)) note=note.slice(1);
+  return note;
+}
+
 function normalizeCloudDatesAndCodes(){  
   state.accountSnapshots=(state.accountSnapshots||[]).map(x=>({  
     ...x,  
@@ -1074,7 +1096,7 @@ function addSalaryRecord(){
     dataDate,  
     type,  
     amount,  
-    note  
+    note:salaryNoteForStorage(note)  
   });  
   
   hideSalaryForm();  
@@ -1101,13 +1123,13 @@ function editSalaryRecord(id){
   if(amount===null)return;  
   if(amount===""||!Number.isFinite(Number(amount))||Number(amount)<0)return alert("請輸入 0 以上的金額");  
   
-  const note=prompt("備註",r.note||"");  
+  const note=prompt("備註",formatSalaryNote(r.note||""));  
   if(note===null)return;  
   
   r.dataDate=d;  
   r.type=type.trim();  
   r.amount=Number(amount);  
-  r.note=note.trim();  
+  r.note=salaryNoteForStorage(note);  
   
   saveLocal();  
   scheduleSync();  
@@ -1150,7 +1172,7 @@ function renderSalary(){
       <td>${esc(formatDataDate(x.dataDate))}</td>  
       <td>${salaryTypeBadge(x.type)}</td>  
       <td class="num balance-col">${money(x.amount)}</td>  
-      <td>${esc(x.note||"")||"—"}</td>  
+      <td>${esc(formatSalaryNote(x.note||""))||"—"}</td>  
       <td>  
         <div class="actions">  
           <button class="btn small" onclick="editSalaryRecord('${x.id}')">✏️ 編輯</button>  
