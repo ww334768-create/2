@@ -206,37 +206,29 @@ table td.balance-col{
 }
 
 
-/* 手機版股票表格：改為精簡卡片，桌機版維持原表格 */
+
+/* 僅修正手機版股票清單：桌機維持原表格，手機改為窄版卡片，不影響其他分頁 */
 @media(max-width:560px){
-  #stocks .table-wrap{overflow:visible}
-  #stocks .table-wrap table{width:100%;min-width:0;table-layout:fixed;border-collapse:separate;border-spacing:0}
-  #stocks .table-wrap thead{display:none}
-  #stocks .table-wrap tbody{display:grid;gap:10px}
-  #stocks .table-wrap tbody tr{
-    display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);
-    gap:0 12px;padding:8px 10px;border:1px solid #eadfe7;
-    border-radius:12px;background:#fff;box-shadow:0 2px 7px rgba(100,70,90,.04)
-  }
-  #stocks .table-wrap tbody td{
-    display:flex;flex-direction:column;justify-content:center;min-width:0;
-    padding:7px 2px;font-size:13px;line-height:1.35;text-align:left;
-    overflow-wrap:anywhere;word-break:normal;border-bottom:1px solid #f0e8ed
-  }
-  #stocks .table-wrap tbody td:nth-child(1){
-    grid-column:1/-1;font-size:14px;padding:8px 2px;font-weight:600
-  }
-  #stocks .table-wrap tbody td:nth-child(1) strong{overflow-wrap:anywhere}
-  #stocks .table-wrap tbody td:nth-child(2)::before{content:"累積股數";font-size:11px;color:#6b6268;margin-bottom:3px}
-  #stocks .table-wrap tbody td:nth-child(3)::before{content:"累積投入";font-size:11px;color:#6b6268;margin-bottom:3px}
-  #stocks .table-wrap tbody td:nth-child(4)::before{content:"最新市值";font-size:11px;color:#6b6268;margin-bottom:3px}
-  #stocks .table-wrap tbody td:nth-child(5)::before{content:"總報酬";font-size:11px;color:#6b6268;margin-bottom:3px}
-  #stocks .table-wrap tbody td:nth-child(6)::before{content:"報酬率";font-size:11px;color:#6b6268;margin-bottom:3px}
-  #stocks .table-wrap tbody td:nth-child(7){grid-column:1/-1;border-bottom:0;padding-top:9px}
-  #stocks .table-wrap tbody td:nth-child(7)::before{content:"操作";font-size:11px;color:#6b6268;margin-bottom:5px}
-  #stocks .table-wrap tbody td:nth-child(7) .actions{gap:5px}
-  #stocks .table-wrap tbody td:nth-child(7) .btn{font-size:11px;padding:6px 7px;white-space:normal}
-  #stocks .table-wrap tbody td.empty{grid-column:1/-1;display:block;text-align:center}
+  #stockListWrap{overflow:visible}
+  #stockListWrap table{display:block;width:100%;min-width:0;border-collapse:separate;border-spacing:0}
+  #stockListWrap thead{display:block;margin-bottom:8px}
+  #stockListWrap thead tr{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}
+  #stockListWrap thead th{display:block;min-width:0;padding:7px 4px;border:1px solid #efd5df;border-radius:8px;text-align:center;font-size:11px;line-height:1.25;white-space:normal;overflow-wrap:anywhere}
+  #stockListWrap thead th span{display:inline-block;margin-left:1px;font-size:10px}
+  #stocks #stockTable{display:grid;gap:9px}
+  #stocks #stockTable tr{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0 10px;padding:10px 11px;border:1px solid #eadfe3;border-radius:12px;background:#fff;box-shadow:0 2px 8px rgba(100,80,90,.04)}
+  #stocks #stockTable td{display:flex;align-items:baseline;justify-content:space-between;gap:7px;min-width:0;padding:6px 0;border-bottom:1px solid #f0e8ed;font-size:12px;text-align:right;overflow-wrap:anywhere}
+  #stocks #stockTable td::before{content:attr(data-label);flex:0 0 auto;font-size:10px;color:#62565c;text-align:left}
+  #stocks #stockTable td:nth-child(1){grid-column:1/-1;justify-content:flex-start;font-size:14px;font-weight:700;border-bottom:1px solid #eadfe3;padding-bottom:8px;margin-bottom:2px}
+  #stocks #stockTable td:nth-child(1)::before{content:"股票／ETF";margin-right:4px}
+  #stocks #stockTable td:nth-child(7){grid-column:1/-1;display:block;border-bottom:0;padding-top:8px}
+  #stocks #stockTable td:nth-child(7)::before{display:block;margin-bottom:6px}
+  #stocks #stockTable td .actions{gap:5px}
+  #stocks #stockTable td .btn.small{font-size:11px;padding:6px 7px}
+  #stocks #stockTable td.empty{display:block;grid-column:1/-1;text-align:center;padding:18px 8px}
+  #stocks #stockTable td.empty::before{content:none}
 }
+
 </style>  
 </head>  
 <body>  
@@ -357,7 +349,7 @@ table td.balance-col{
         <button class="btn" onclick="hideStockForm()">取消</button>  
       </div>  
     </div>  
-    <div class="table-wrap section">  
+    <div class="table-wrap section" id="stockListWrap">  
       <table>  
         <thead><tr>  
 <th class="sort-th" onclick="sortStocks('code')" title="點擊切換排序">股票代碼 <span id="stockSortCode">↕</span></th>  
@@ -626,6 +618,28 @@ function stockCode(code){
   return known[v] || v;  
 }  
   
+// 薪資備註：像「2026/08」這類年月要當文字保存，避免 Google Sheets 自動轉成日期。
+function salaryNoteForStorage(value){
+  const note=String(value??"").trim();
+  if(/^\d{4}\/\d{1,2}$/.test(note) && !note.startsWith("'")) return "'"+note;
+  return note;
+}
+function formatSalaryNote(value){
+  let note=String(value??"").trim();
+  // 舊資料若已被 Google Sheets 轉成 ISO 日期，顯示回台灣時區的 YYYY/MM。
+  if(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$/.test(note)){
+    const d=new Date(note);
+    if(!Number.isNaN(d.getTime())){
+      const parts=new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Taipei",year:"numeric",month:"2-digit"}).formatToParts(d);
+      const obj={}; parts.forEach(x=>{if(x.type!=="literal")obj[x.type]=x.value});
+      if(obj.year&&obj.month) return `${obj.year}/${obj.month}`;
+    }
+  }
+  // 本機暫存中用前置單引號保護的年月，畫面不顯示單引號。
+  if(/^'\d{4}\/\d{1,2}$/.test(note)) note=note.slice(1);
+  return note;
+}
+
 function normalizeCloudDatesAndCodes(){  
   state.accountSnapshots=(state.accountSnapshots||[]).map(x=>({  
     ...x,  
@@ -1003,13 +1017,13 @@ function renderStocks(){
   tb.innerHTML=rows.map(s=>{  
     const i=stockInfo(s);  
     return `<tr>  
-      <td><strong>${esc(stockLabel(s.code))}</strong></td>  
-      <td>${i.shares.toLocaleString("zh-TW")}</td>  
-      <td>${money(i.investment)}</td>  
-      <td>${money(i.market)}</td>  
-      <td>${money(i.ret)}</td>  
-      <td>${pct(i.rate)}</td>  
-      <td><div class="actions">  
+      <td data-label="股票／ETF"><strong>${esc(stockLabel(s.code))}</strong></td>  
+      <td data-label="累積股數">${i.shares.toLocaleString("zh-TW")}</td>  
+      <td data-label="累積投入">${money(i.investment)}</td>  
+      <td data-label="最新市值">${money(i.market)}</td>  
+      <td data-label="總報酬">${money(i.ret)}</td>  
+      <td data-label="報酬率">${pct(i.rate)}</td>  
+      <td data-label="操作"><div class="actions">  
         <button class="btn small" onclick="openStockDetail('${s.id}')">明細</button>  
         <button class="btn small" onclick="addMarketValue('${s.id}')">更新市值</button>  
         <button class="btn small" onclick="addSale('${s.id}')">賣出</button>  
@@ -1106,7 +1120,7 @@ function addSalaryRecord(){
     dataDate,  
     type,  
     amount,  
-    note  
+    note:salaryNoteForStorage(note)  
   });  
   
   hideSalaryForm();  
@@ -1133,13 +1147,13 @@ function editSalaryRecord(id){
   if(amount===null)return;  
   if(amount===""||!Number.isFinite(Number(amount))||Number(amount)<0)return alert("請輸入 0 以上的金額");  
   
-  const note=prompt("備註",r.note||"");  
+  const note=prompt("備註",formatSalaryNote(r.note||""));  
   if(note===null)return;  
   
   r.dataDate=d;  
   r.type=type.trim();  
   r.amount=Number(amount);  
-  r.note=note.trim();  
+  r.note=salaryNoteForStorage(note);  
   
   saveLocal();  
   scheduleSync();  
@@ -1182,7 +1196,7 @@ function renderSalary(){
       <td>${esc(formatDataDate(x.dataDate))}</td>  
       <td>${salaryTypeBadge(x.type)}</td>  
       <td class="num balance-col">${money(x.amount)}</td>  
-      <td>${esc(x.note||"")||"—"}</td>  
+      <td>${esc(formatSalaryNote(x.note||""))||"—"}</td>  
       <td>  
         <div class="actions">  
           <button class="btn small" onclick="editSalaryRecord('${x.id}')">✏️ 編輯</button>  
